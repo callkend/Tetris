@@ -2,7 +2,7 @@
 #include <Adafruit_NeoMatrix.h>
 #include "portableArcade.h"
 
-void initPortableArcade(Adafruit_NeoMatrix matix)
+void initPortableArcade(Adafruit_NeoMatrix matrix)
 {
     // Tell matrix to start, clear the screen, and set the Brightness of the martix.
     matrix.begin();
