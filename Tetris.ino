@@ -9,14 +9,9 @@ Tetris
 #include <Adafruit_SPITFT_Macros.h>
 #include <gfxfont.h>
 
-
-
-
 #include <gamma.h>
 
-
 #include "portableArcade.h"
-
 
 
 enum GameState_e
@@ -81,8 +76,8 @@ Shape_t GetRandomShape(void)
         result.Color = LINE_COLOR;
         result.Points[0] = {1, 0};
         result.Points[1] = {1, 1};
-        result.Points[2] = {1, 3};
-        result.Points[3] = {1, 4};
+        result.Points[2] = {1, 2};
+        result.Points[3] = {1, 3};
         break;
     case NORMAL_L:
         result.Color = NORMAL_L_COLOR;
@@ -154,10 +149,11 @@ void setup()
     randomSeed(analogRead(0));
 
     //Intializes the LED matrix, clears it, and setups the IO
-    initPortableArcade(matrix);
+    initPortableArcade(&matrix);
 
-    DrawPreview(GetRandomShape());
     matrix.fill(LINE_COLOR);
+    DrawPreview(GetRandomShape());
+    
     matrix.show();
 }
 
@@ -197,7 +193,5 @@ void loop()
     case END_GAME:
 
         break;
-            matrix.fill(LINE_COLOR);
-    matrix.show();
     }
 }

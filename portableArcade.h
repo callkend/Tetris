@@ -36,7 +36,7 @@ typedef enum
   RIGHT,
 } Direction_e;
 
-void initPortableArcade(Adafruit_NeoMatrix matix);
+void initPortableArcade(Adafruit_NeoMatrix* matix);
 
 Direction_e GetDirection(void);
 

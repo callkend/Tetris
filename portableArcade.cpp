@@ -2,15 +2,15 @@
 #include <Adafruit_NeoMatrix.h>
 #include "portableArcade.h"
 
-void initPortableArcade(Adafruit_NeoMatrix matrix)
+void initPortableArcade(Adafruit_NeoMatrix* matrix)
 {
     // Tell matrix to start, clear the screen, and set the Brightness of the martix.
-    matrix.begin();
-    matrix.fillScreen(0);
-    matrix.setTextWrap(false);
-    matrix.setBrightness(40);
-    matrix.setTextColor(matrix.Color(128, 0, 0));
-    matrix.show();
+    matrix->begin();
+    matrix->fillScreen(0);
+    matrix->setTextWrap(false);
+    matrix->setBrightness(40);
+    matrix->setTextColor(matrix->Color(128, 0, 0));
+    matrix->show();
 
     //PULLUPs the controller so that when direction made that arduino takes input.
     pinMode(JOYSTICK_DOWN_PIN, INPUT_PULLUP);
