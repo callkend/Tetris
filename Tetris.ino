@@ -36,7 +36,7 @@ const uint16_t BACKWARD_Z_COLOR = matrix.Color(221, 4, 31);
 const uint16_t NORMAL_T_COLOR = matrix.Color(184, 24, 134);
 const uint16_t SQAURE_COLOR = matrix.Color(252, 189, 26);
 const uint16_t BACKGROUND_COLOR = matrix.Color(0, 0, 0);
-const uint16_t WALL_COLOR = matrix.Color(0, 0, 0);
+const uint16_t WALL_COLOR = matrix.Color(119, 119, 119);
 
 typedef enum
 {
@@ -68,7 +68,7 @@ Shape_t GetRandomShape(void)
 {
 
     Shape_t result;
-    result.Name = (Shape_e)random(6);
+    result.Name = (Shape_e)random(7);
     
     switch (result.Name)
     {
@@ -102,24 +102,24 @@ Shape_t GetRandomShape(void)
         break;
     case NORMAL_Z:
         result.Color = NORMAL_Z_COLOR;
-        result.Points[0] = {1, 0};
+        result.Points[0] = {0, 2};
+        result.Points[1] = {1, 2};
+        result.Points[2] = {1, 1};
+        result.Points[3] = {2, 1};
+        break;
+    case BACKWARDS_Z:
+        result.Color = BACKWARD_Z_COLOR;
+        result.Points[0] = {0, 1};
         result.Points[1] = {1, 1};
         result.Points[2] = {1, 2};
         result.Points[3] = {2, 2};
         break;
-    case BACKWARDS_Z:
-        result.Color = BACKWARD_Z_COLOR;
-        result.Points[0] = {2, 0};
-        result.Points[1] = {2, 1};
-        result.Points[2] = {2, 2};
-        result.Points[3] = {1, 2};
-        break;
     case SQUARE:
         result.Color = SQAURE_COLOR;
-        result.Points[0] = {1, 0};
-        result.Points[1] = {1, 1};
-        result.Points[2] = {2, 0};
-        result.Points[3] = {3, 1};
+        result.Points[0] = {1, 1};
+        result.Points[1] = {1, 2};
+        result.Points[2] = {2, 1};
+        result.Points[3] = {2, 2};
         break;
     }
     return result;
@@ -129,6 +129,10 @@ Shape_t GetRandomShape(void)
 #define PreviewOffsetY 1
 #define PreviewSizeX 3
 #define PreveiwSzieY 4
+
+Shape_t currentShape;
+Location_t playerOffset;
+
 void DrawPreview(Shape_t shape)
 {
     matrix.fillRect(PreviewOffsetX, PreviewOffsetY,
@@ -144,17 +148,25 @@ void DrawPreview(Shape_t shape)
     }
 }
 
+void DrawShape(Location_t playerPostion, Shape_t shape)
+{
+        for (int i = 0; i < sizeof(shape.Points); ++i)
+    {
+        Location_t location = shape.Points[i];
+
+        matrix.drawPixel(location.X + playerPostion.X,
+                         location.Y + playerPostion.Y,
+                         shape.Color);
+    }
+}
+
 void setup()
 {
+    //Serial.begin(9600);
     randomSeed(analogRead(0));
-
+    GameState = START_GAME;
     //Intializes the LED matrix, clears it, and setups the IO
     initPortableArcade(&matrix);
-
-    matrix.fill(LINE_COLOR);
-    DrawPreview(GetRandomShape());
-    
-    matrix.show();
 }
 
 void loop()
@@ -166,11 +178,25 @@ void loop()
         break;
     default:
     case START_GAME:
-
+        playerOffset.X = 5;
+        playerOffset.Y = 0;
+        matrix.fill(BACKGROUND_COLOR);
+        DrawPreview(GetRandomShape());
         matrix.drawLine(0, 0, 0, 15, WALL_COLOR);
-            matrix.drawLine(11, 0, 11, 15, WALL_COLOR);
-            break;
+        matrix.drawLine(11, 0, 11, 15, WALL_COLOR);
+        currentShape = GetRandomShape();
+        matrix.show();
+        GameState = RUNNING_GAME;
+        break;
     case RUNNING_GAME:
+    ++playerOffset.Y;
+    DrawShape(playerOffset, currentShape);
+    matrix.show();
+    if (playerOffset.Y == 15)
+    {
+        playerOffset.Y = 1;
+    }
+    
         switch (0)
         {
         case LEFT:
@@ -194,4 +220,5 @@ void loop()
 
         break;
     }
+    delay(250);
 }
