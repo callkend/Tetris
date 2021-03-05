@@ -131,6 +131,7 @@ Shape_t GetRandomShape(void)
 #define PreveiwSzieY 4
 
 Shape_t currentShape;
+Shape_t nextShape;
 Location_t playerOffset;
 
 void DrawPreview(Shape_t shape)
@@ -155,7 +156,7 @@ void DrawShape(Location_t playerPostion, Shape_t shape)
         Location_t location = shape.Points[i];
 
         matrix.drawPixel(location.X + playerPostion.X,
-                         location.Y + playerPostion.Y,
+                         location.Y + playerPostion.Y -2,
                          shape.Color);
     }
 }
@@ -181,9 +182,11 @@ void loop()
         playerOffset.X = 5;
         playerOffset.Y = 0;
         matrix.fill(BACKGROUND_COLOR);
-        DrawPreview(GetRandomShape());
+        nextShape = GetRandomShape();
+        DrawPreview(nextShape);
         matrix.drawLine(0, 0, 0, 15, WALL_COLOR);
         matrix.drawLine(11, 0, 11, 15, WALL_COLOR);
+        matrix.fillRect(11,6,15,15,WALL_COLOR);
         currentShape = GetRandomShape();
         matrix.show();
         GameState = RUNNING_GAME;
@@ -194,17 +197,24 @@ void loop()
     matrix.show();
     if (playerOffset.Y == 15)
     {
-        playerOffset.Y = 1;
+        playerOffset.Y = 0;
+        currentShape = nextShape;
+        nextShape = GetRandomShape();
+        DrawPreview(nextShape);
     }
     
-        switch (0)
+        switch (GetDirection())
         {
         case LEFT:
+        if(playerOffset.X > 1){
+            --playerOffset.X;
+        }
             break;
-
-        default:
+    
         case RIGHT:
-
+        if(playerOffset.X < 8){
+            ++playerOffset.X;
+        }
             break;
 
         case DOWN:
