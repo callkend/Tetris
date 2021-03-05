@@ -3,7 +3,13 @@
 #ifndef PORTABLE_ARCADE_H
 #define PORTABLE_ARCADE_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <Adafruit_NeoMatrix.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_NeoPixel.h>
 
 // Defines the pin in which the data is sent to the matrix.
 #define MATRIX_OUTPUT_PIN 6
@@ -33,5 +39,9 @@ typedef enum
 void initPortableArcade(Adafruit_NeoMatrix matix);
 
 Direction_e GetDirection(void);
+
+#ifdef	__cplusplus
+}
+#endif
 
 #endif // PORTABLE_ARCADE_H

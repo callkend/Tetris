@@ -1,4 +1,5 @@
 
+#include <Adafruit_NeoMatrix.h>
 #include "portableArcade.h"
 
 void initPortableArcade(Adafruit_NeoMatrix matix)
@@ -8,7 +9,7 @@ void initPortableArcade(Adafruit_NeoMatrix matix)
     matrix.fillScreen(0);
     matrix.setTextWrap(false);
     matrix.setBrightness(40);
-    matrix.setTextColor(colors[0]);
+    matrix.setTextColor(matrix.Color(128, 0, 0));
     matrix.show();
 
     //PULLUPs the controller so that when direction made that arduino takes input.
