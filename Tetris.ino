@@ -143,9 +143,6 @@ Shape_t currentShape;
 Shape_t nextShape;
 Location_t playerOffset;
 
-=======
-#define PreviewSizeY 4
->>>>>>> 3f64da14a93e1a45bd260dbea2317b1756ff4863
 void DrawPreview(Shape_t shape)
 {
     matrix.fillRect(PreviewOffsetX, PreviewOffsetY,
