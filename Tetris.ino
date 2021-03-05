@@ -3,20 +3,21 @@ Wyatt and Kendall
 Tetris
 */
 
+#include <Adafruit_NeoPixel.h>
+#include <Adafruit_NeoMatrix.h>
 #include <Adafruit_GFX.h>
-#include <Adafruit_GrayOLED.h>
-#include <Adafruit_SPITFT.h>
 #include <Adafruit_SPITFT_Macros.h>
 #include <gfxfont.h>
 
-#include <Adafruit_NeoPixel.h>
 
-#include <Adafruit_NeoMatrix.h>
+
 
 #include <gamma.h>
 
 
 #include "portableArcade.h"
+
+
 
 enum GameState_e
 {
@@ -32,6 +33,16 @@ Adafruit_NeoMatrix matrix = Adafruit_NeoMatrix(16, 16, MATRIX_OUTPUT_PIN,
                                                    NEO_MATRIX_ROWS + NEO_MATRIX_ZIGZAG,
                                                NEO_GRB + NEO_KHZ800);
 
+const uint16_t LINE_COLOR = matrix.Color(17, 157, 242);
+const uint16_t NORMAL_L_COLOR = matrix.Color(235, 74, 2);
+const uint16_t BACKWARD_L_COLOR = matrix.Color(17, 44, 233);
+const uint16_t NORMAL_Z_COLOR = matrix.Color(65, 173, 1);
+const uint16_t BACKWARD_Z_COLOR = matrix.Color(221, 4, 31);
+const uint16_t NORMAL_T_COLOR = matrix.Color(184, 24, 134);
+const uint16_t SQAURE_COLOR = matrix.Color(252, 189, 26);
+const uint16_t BACKGROUND_COLOR = matrix.Color(0, 0, 0);
+const uint16_t WALL_COLOR = matrix.Color(0, 0, 0);
+
 typedef enum
 {
     LINE,
@@ -45,8 +56,8 @@ typedef enum
 
 typedef struct
 {
-    X : 4;
-    Y : 4;
+   byte X : 4;
+   byte Y : 4;
 } Location_t;
 
 typedef struct
@@ -62,7 +73,7 @@ Shape_t GetRandomShape(void)
 {
 
     Shape_t result;
-    result.Name = random(6);
+    result.Name = (Shape_e)random(6);
     
     switch (result.Name)
     {
@@ -80,7 +91,7 @@ Shape_t GetRandomShape(void)
         result.Points[2] = {1, 2};
         result.Points[3] = {2, 2};
         break;
-    case BACKWARD_L:
+    case BACKWARDS_L:
         result.Color = BACKWARD_L_COLOR;
         result.Points[0] = {2, 0};
         result.Points[1] = {2, 1};
@@ -101,14 +112,14 @@ Shape_t GetRandomShape(void)
         result.Points[2] = {1, 2};
         result.Points[3] = {2, 2};
         break;
-    case BACKWARD_Z:
+    case BACKWARDS_Z:
         result.Color = BACKWARD_Z_COLOR;
         result.Points[0] = {2, 0};
         result.Points[1] = {2, 1};
         result.Points[2] = {2, 2};
         result.Points[3] = {1, 2};
         break;
-    case SQAURE:
+    case SQUARE:
         result.Color = SQAURE_COLOR;
         result.Points[0] = {1, 0};
         result.Points[1] = {1, 1};
@@ -119,15 +130,6 @@ Shape_t GetRandomShape(void)
     return result;
 }
 
-const uint16_t LINE_COLOR = matrix.Color(17, 157, 242);
-const uint16_t NORMAL_L_COLOR = matrix.Color(235, 74, 2);
-const uint16_t BACKWARD_L_COLOR = matrix.Color(17, 44, 233);
-const uint16_t NORMAL_Z_COLOR = matrix.Color(65, 173, 1);
-const uint16_t BACKWARD_Z_COLOR = matrix.Color(221, 4, 31);
-const uint16_t NORMAL_T_COLOR = matrix.Color(184, 24, 134);
-const uint16_t SQAURE_COLOR = matrix.Color(252, 189, 26);
-const uint16_t BACKGROUND_COLOR = matrix.Color(0, 0, 0);
-
 #define PreviewOffsetX 13
 #define PreviewOffsetY 1
 #define PreviewSizeX 3
@@ -135,7 +137,7 @@ const uint16_t BACKGROUND_COLOR = matrix.Color(0, 0, 0);
 void DrawPreview(Shape_t shape)
 {
     matrix.fillRect(PreviewOffsetX, PreviewOffsetY,
-                    PreviewSizeX, PreveiwSzieY, BACKGROUND_COLOR)
+                    PreviewSizeX, PreveiwSzieY, BACKGROUND_COLOR);
 
         for (int i = 0; i < sizeof(shape.Points); ++i)
     {
@@ -147,18 +149,19 @@ void DrawPreview(Shape_t shape)
     }
 }
 
-void Setup()
+void setup()
 {
-    randomSeed(analogRead(0))
+    randomSeed(analogRead(0));
 
     //Intializes the LED matrix, clears it, and setups the IO
-    initPortableArcade(matix);
+    initPortableArcade(matrix);
 
     DrawPreview(GetRandomShape());
+    matrix.fill(LINE_COLOR);
     matrix.show();
 }
 
-void Loop()
+void loop()
 {
     switch (GameState)
     {
@@ -168,10 +171,11 @@ void Loop()
     default:
     case START_GAME:
 
-        matrix.drawLine(0, 0, 0, 15, WALL_COLOR)
-            matrix.drawLine(11, 0, 11, 15, WALL_COLOR) break;
+        matrix.drawLine(0, 0, 0, 15, WALL_COLOR);
+            matrix.drawLine(11, 0, 11, 15, WALL_COLOR);
+            break;
     case RUNNING_GAME:
-        switch (UserInput)
+        switch (0)
         {
         case LEFT:
             break;
@@ -193,5 +197,7 @@ void Loop()
     case END_GAME:
 
         break;
+            matrix.fill(LINE_COLOR);
+    matrix.show();
     }
 }
