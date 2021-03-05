@@ -115,19 +115,11 @@ Shape_t GetRandomShape(void)
         result.Points[3] = {2, 2};
         break;
     case SQUARE:
-<<<<<<< HEAD
-        result.Color = SQAURE_COLOR;
+        result.Color = SQUARE_COLOR;
         result.Points[0] = {1, 1};
         result.Points[1] = {1, 2};
         result.Points[2] = {2, 1};
         result.Points[3] = {2, 2};
-=======
-        result.Color = SQUARE_COLOR;
-        result.Points[0] = {1, 0};
-        result.Points[1] = {1, 1};
-        result.Points[2] = {2, 0};
-        result.Points[3] = {3, 1};
->>>>>>> 3f64da14a93e1a45bd260dbea2317b1756ff4863
         break;
     }
     return result;
@@ -136,8 +128,7 @@ Shape_t GetRandomShape(void)
 #define PreviewOffsetX 13
 #define PreviewOffsetY 1
 #define PreviewSizeX 3
-<<<<<<< HEAD
-#define PreveiwSzieY 4
+#define PreviewSizeY 4
 
 Shape_t currentShape;
 Shape_t nextShape;
