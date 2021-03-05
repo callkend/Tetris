@@ -34,7 +34,7 @@ const uint16_t BACKWARD_L_COLOR = matrix.Color(17, 44, 233);
 const uint16_t NORMAL_Z_COLOR = matrix.Color(65, 173, 1);
 const uint16_t BACKWARD_Z_COLOR = matrix.Color(221, 4, 31);
 const uint16_t NORMAL_T_COLOR = matrix.Color(184, 24, 134);
-const uint16_t SQAURE_COLOR = matrix.Color(252, 189, 26);
+const uint16_t SQUARE_COLOR = matrix.Color(252, 189, 26);
 const uint16_t BACKGROUND_COLOR = matrix.Color(0, 0, 0);
 const uint16_t WALL_COLOR = matrix.Color(119, 119, 119);
 
@@ -115,11 +115,19 @@ Shape_t GetRandomShape(void)
         result.Points[3] = {2, 2};
         break;
     case SQUARE:
+<<<<<<< HEAD
         result.Color = SQAURE_COLOR;
         result.Points[0] = {1, 1};
         result.Points[1] = {1, 2};
         result.Points[2] = {2, 1};
         result.Points[3] = {2, 2};
+=======
+        result.Color = SQUARE_COLOR;
+        result.Points[0] = {1, 0};
+        result.Points[1] = {1, 1};
+        result.Points[2] = {2, 0};
+        result.Points[3] = {3, 1};
+>>>>>>> 3f64da14a93e1a45bd260dbea2317b1756ff4863
         break;
     }
     return result;
@@ -128,16 +136,20 @@ Shape_t GetRandomShape(void)
 #define PreviewOffsetX 13
 #define PreviewOffsetY 1
 #define PreviewSizeX 3
+<<<<<<< HEAD
 #define PreveiwSzieY 4
 
 Shape_t currentShape;
 Shape_t nextShape;
 Location_t playerOffset;
 
+=======
+#define PreviewSizeY 4
+>>>>>>> 3f64da14a93e1a45bd260dbea2317b1756ff4863
 void DrawPreview(Shape_t shape)
 {
     matrix.fillRect(PreviewOffsetX, PreviewOffsetY,
-                    PreviewSizeX, PreveiwSzieY, BACKGROUND_COLOR);
+                    PreviewSizeX, PreviewSizeY, BACKGROUND_COLOR);
 
         for (int i = 0; i < sizeof(shape.Points); ++i)
     {
