@@ -50,8 +50,10 @@ typedef enum
 } Shape_e;
 
 typedef enum {
-    ROTATE_TRANSPOSE,
-    ROTATE_NEGATE,
+    ROTATE_0,
+    ROTATE_90,
+    ROTATE_180,
+    ROTATE_270,
 } ShapeRotate_e;
 
 typedef struct
@@ -74,7 +76,7 @@ typedef struct
 
     ShapePoint_t Points[POINTS_PER_SHAPE];
 
-    ShapeRotate_e NextRotate;
+    ShapeRotate_e Rotation;
 } Shape_t;
 
 Shape_t GetRandomShape(void)
@@ -82,7 +84,8 @@ Shape_t GetRandomShape(void)
 
     Shape_t result;
     result.Name = (Shape_e)random(7);
-    
+    result.Rotation = ROTATE_0;
+
     switch (result.Name)
     {
     case LINE:
@@ -145,22 +148,16 @@ Location_t playerOffset;
 void RotateShape(Shape_t* shape){
 
     ShapePoint_t* point;
-    if (shape->NextRotate == ROTATE_TRANSPOSE)
-    {
-        // Transpose the shape
-        shape->NextRotate = ROTATE_NEGATE;
-        uint8_t temp;
-        for (int i = 0; i < POINTS_PER_SHAPE; ++i){
-            point = &shape->Points[i];
 
-            // Fancy XOR Swap;
-            point->X ^= point->Y;
-            point->Y ^= point->X;
-            point->X ^= point->X;
-        } 
-    } else {
+    shape->Rotation == (ShapeRotate_e)(shape->Rotation + 1);
+
+    if (shape->Rotation > ROTATE_270){
+        shape->Rotation = ROTATE_0;
+    }
+
+    if (shape->Rotation == ROTATE_90 || shape->Rotation == ROTATE_180)
+    {
         // Negate the shape
-        shape->NextRotate = ROTATE_TRANSPOSE;
         for (int i = 0; i < POINTS_PER_SHAPE; ++i){
             point = &shape->Points[i];
 
@@ -168,6 +165,16 @@ void RotateShape(Shape_t* shape){
             point->Y *= -1;
         } 
     }
+
+    // Transpose the shape
+    uint8_t temp;
+    for (int i = 0; i < POINTS_PER_SHAPE; ++i){
+        point = &shape->Points[i];
+        
+        temp = point->X;
+        point->X = point->Y;
+        point->Y = temp;
+    } 
 }
 
 #define PreviewOffsetX 13
@@ -181,14 +188,14 @@ void DrawPreview(Shape_t shape)
                     PreviewSizeX, PreviewSizeY, BACKGROUND_COLOR);
 
     const Location_t previewCenter = { PreviewOffsetX + 1, 
-                                       PreviewSizeY + 2};
+                                       PreviewOffsetY + 2};
 
     DrawShape(previewCenter, shape);
 }
 
 Location_t* PlotShape (Location_t center, Shape_t shape){
 
-    Location_t result[POINTS_PER_SHAPE];
+    static Location_t result[POINTS_PER_SHAPE];
 
     for (int i = 0; i < POINTS_PER_SHAPE; ++i)
     {
@@ -199,6 +206,8 @@ Location_t* PlotShape (Location_t center, Shape_t shape){
         result[i] = { (uint8_t)(location.X + (int8_t)center.X),
                       (uint8_t)(location.Y + (int8_t)center.Y) };
     }
+
+    return result;
 }
 
 void DrawPoints(Location_t* points, int count, int color){
