@@ -181,21 +181,19 @@ void DrawShape(Location_t playerPostion, Shape_t shape)
 void LineErase()
 {
     int fillCount;
+    
     Location_t playableSpace;
-    for(int y = GameOffsetY; y < GameSizeY;)
+    for(int y = GameOffsetY; y < GameSizeY; ++y)
     {
         playableSpace.Y = y;
         fillCount = 0;
-        for (int x = GameOffsetX; x <= GameSizeX;)
+        for (int x = GameOffsetX; x < GameSizeX; ++x)
         {
             playableSpace.X = x;
-            Serial.println(fillCount);
             if (GetPixel(playableSpace) == BACKGROUND_COLOR){
                 break;
-            } 
-            else {
-              ++fillCount;
-                if(fillCount >= GameSizeX)
+            } else {
+                if(++fillCount >= GameSizeX)
                 {
                     matrix.drawLine(GameOffsetX, y,
                     GameOffsetX + GameOffsetX, y,
@@ -204,9 +202,7 @@ void LineErase()
                     // TODO: Drop everything one block
                 }
             }
-             ++x;
         }
-         ++y;
     }
 }
 
@@ -219,7 +215,8 @@ int GetPixel(Location_t location)
   {
     address ^= 0x0F;
   }
-  //matrix.setPixelColor(address, LINE_COLOR);
+
+  //matrix.setPixelColor(address, COLOR_BLUE);
   return matrix.getPixelColor(address);
 }
 
