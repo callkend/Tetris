@@ -462,7 +462,7 @@ void loop()
                 break;
 
             case DOWN:
-
+                    playerOffset.Y = 14;
                 break;
 
             case UP:
