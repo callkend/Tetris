@@ -54,6 +54,7 @@ typedef enum
     BACKWARDS_Z,
     NORMAL_T,
     SQUARE,
+    NO_SHAPE,
 } Shape_e;
 
 typedef struct
@@ -252,15 +253,10 @@ void LineErase()
             playableSpace.X = x;
             if (GetPixel(playableSpace) == BACKGROUND_COLOR)
             {
-                Serial.print("Break -> ");
-                Serial.print(y);
-                Serial.print(' ');
-                Serial.println(x - GameOffsetX);
                 break;
             }
             else if (++fillCount >= GameSizeX)
             {
-                Serial.print("Fill -> ");
                 Serial.println(y);
                 matrix.drawLine(GameOffsetX, y,
                                 GameSizeX, y,
@@ -289,7 +285,7 @@ uint32_t GetPixel(Location_t location)
 
 bool ContainsFlag(int input, int flag)
 {
-    return input & (!flag) > 0;
+    return (input & flag) > 0;
 }
 
 Collision_e detectCollision(Location_t playerPostion, Shape_t shape)
@@ -298,6 +294,7 @@ Collision_e detectCollision(Location_t playerPostion, Shape_t shape)
 
     int result = NO_COLLISION;
 
+
     for (int i = 0; i < POINTS_PER_SHAPE; ++i)
     {
         Location_t location = points[i];
@@ -305,21 +302,22 @@ Collision_e detectCollision(Location_t playerPostion, Shape_t shape)
         // Check for bottom collistions
         if (!ContainsFlag(result, COLLISION_ON_BOTTOM))
         {
-            if (location.Y >= (GameOffsetY + GameSizeY))
+            if (location.Y >= (GameOffsetY + GameSizeY -1))
             {
                 result |= COLLISION_ON_BOTTOM;
             }
-            else
-            {
-                ++location.Y;
+            // else
+            // {
+            //     ++location.Y;
 
-                if (GetPixel(location) != BACKGROUND_COLOR)
-                {
-                    result |= COLLISION_ON_BOTTOM;
-                }
+            //     if (GetPixel(location) != BACKGROUND_COLOR)
+            //     {
+            //         result |= COLLISION_ON_BOTTOM;
+            //         Serial.println("B2");
+            //     }
 
-                --location.Y;
-            }
+            //     --location.Y;
+            // }
         }
 
         // Check for left collistions
@@ -329,37 +327,37 @@ Collision_e detectCollision(Location_t playerPostion, Shape_t shape)
             {
                 result |= COLLISION_ON_LEFT;
             }
-            else
-            {
-                --location.X;
+            // else
+            // {
+            //     --location.X;
 
-                if (GetPixel(location) != BACKGROUND_COLOR)
-                {
-                    result |= COLLISION_ON_LEFT;
-                }
+            //     if (GetPixel(location) != BACKGROUND_COLOR)
+            //     {
+            //         result |= COLLISION_ON_LEFT;
+            //     }
 
-                ++location.X;
-            }
+            //     ++location.X;
+            // }
         }
 
         // Check for right collistions
         if (!ContainsFlag(result, COLLISION_ON_RIGHT))
         {
-            if (location.X >= (GameOffsetX + GameSizeX))
+            if (location.X >= (GameOffsetX + GameSizeX - 1))
             {
                 result |= COLLISION_ON_RIGHT;
             }
-            else
-            {
-                ++location.X;
+            // else
+            // {
+            //     ++location.X;
 
-                if (GetPixel(location) != BACKGROUND_COLOR)
-                {
-                    result |= COLLISION_ON_RIGHT;
-                }
+            //     if (GetPixel(location) != BACKGROUND_COLOR)
+            //     {
+            //         result |= COLLISION_ON_RIGHT;
+            //     }
 
-                --location.X;
-            }
+            //     --location.X;
+            // }
         }
     }
 
@@ -379,66 +377,65 @@ void setup()
 
 void loop()
 {
-    if (++frame < 200)
+    static Direction_e lastDirection;
+    static Location_t lastOffset;
+    static Shape_t lastShape;
+
+    switch (GameState)
     {
-        delay(1);
-    }
-    else
+    case PRE_GAME:
+        /* code */
+        break;
+    default:
+    case START_GAME:
+        playerOffset.X = 5;
+        playerOffset.Y = 2;
+        matrix.fill(BACKGROUND_COLOR);
+        nextShape = GetRandomShape();
+        DrawPreview(nextShape);
+        matrix.drawLine(0, 0, 0, 15, WALL_COLOR);
+        matrix.drawLine(11, 0, 11, 15, WALL_COLOR);
+        matrix.fillRect(11, 6, 15, 15, WALL_COLOR);
+        currentShape = GetRandomShape();
+        matrix.show();
+        GameState = RUNNING_GAME;
+        lastShape.Name = NO_SHAPE;
+        break;
+    case RUNNING_GAME:
     {
-        frame = 0;
-        switch (GameState)
+        // Move the shape left and right
+        Direction_e currentDirection = GetDirection();
+        Collision_e collision = detectCollision(playerOffset, currentShape);
+
+        bool updateShape = false;
+
+        if (currentDirection != lastDirection)
         {
-        case PRE_GAME:
-            /* code */
-            break;
-        default:
-        case START_GAME:
-            playerOffset.X = 5;
-            playerOffset.Y = 0;
-            matrix.fill(BACKGROUND_COLOR);
-            nextShape = GetRandomShape();
-            DrawPreview(nextShape);
-            matrix.drawLine(0, 0, 0, 15, WALL_COLOR);
-            matrix.drawLine(11, 0, 11, 15, WALL_COLOR);
-            matrix.fillRect(11, 6, 15, 15, WALL_COLOR);
-            currentShape = GetRandomShape();
-            matrix.show();
-            GameState = RUNNING_GAME;
-            break;
-        case RUNNING_GAME:
-        {
-            ++playerOffset.Y;
-            DrawShape(playerOffset, currentShape);
-            matrix.show();
+            lastDirection = currentDirection;
 
-            Collision_e collision = detectCollision(playerOffset, currentShape);
-
-            if (playerOffset.Y == 15)
-            {
-                playerOffset.Y = 0;
-                currentShape = nextShape;
-                nextShape = GetRandomShape();
-                DrawPreview(nextShape);
-                LineErase();
-            }
-            else
-            {
-                ClearShape(playerOffset, currentShape);
-            }
-
-            switch (GetDirection())
+            switch (currentDirection)
             {
             case LEFT:
-                if (playerOffset.X > 2)
+                if (!ContainsFlag(collision, COLLISION_ON_LEFT))
                 {
                     --playerOffset.X;
+                    updateShape = true;
+                } 
+                else 
+                {
+                    Serial.println("L");
                 }
                 break;
 
             case RIGHT:
-                if (playerOffset.X < 9)
+                if (!ContainsFlag(collision, COLLISION_ON_RIGHT))
                 {
                     ++playerOffset.X;
+                    updateShape = true;
+                }
+                else 
+                {
+                    Serial.println("R");
                 }
                 break;
 
@@ -447,14 +444,86 @@ void loop()
                 break;
 
             case UP:
-                RotateShape(&currentShape);
+                {
+                    Shape_t shapeStorage = currentShape;
+                    RotateShape(&currentShape);
+
+                    Collision_e rotateCollision = detectCollision(playerOffset, currentShape);
+
+                    if (rotateCollision == (COLLISION_ON_LEFT | COLLISION_ON_RIGHT))
+                    {
+                        // Invalid rotation
+                        currentShape = shapeStorage;
+                    }
+                    else if (ContainsFlag(rotateCollision, COLLISION_ON_RIGHT)){
+                        --playerOffset.X;
+                    }
+                    else if (ContainsFlag(rotateCollision, COLLISION_ON_LEFT)){
+
+                        ++playerOffset.X;
+
+                        if (currentShape.Name == LINE){
+                            rotateCollision = detectCollision(playerOffset, currentShape);
+
+                            if (rotateCollision == (COLLISION_ON_LEFT | COLLISION_ON_RIGHT)){
+                                // Invalid rotation
+                                currentShape = shapeStorage;
+                            }
+                            else if (ContainsFlag(rotateCollision, COLLISION_ON_LEFT)){
+                                ++playerOffset.X;
+                            }
+                        }
+                        
+                    }
+
+                    updateShape = true;
+                }
+
                 break;
             }
         }
-        break;
-        case END_GAME:
 
-            break;
+        // Move down if it is time
+        static uint16_t downCount = 0;
+        if (++downCount > 500)
+        {
+            Serial.println((int)collision);
+            downCount = 0;
+
+            if (ContainsFlag(collision, COLLISION_ON_BOTTOM)){
+                playerOffset.Y = 2;
+                playerOffset.X = 5;
+                currentShape = nextShape;
+                nextShape = GetRandomShape();
+                DrawPreview(nextShape);
+                LineErase();
+                lastShape.Name = NO_SHAPE;
+                Serial.println("B");
+
+            } else {
+                ++playerOffset.Y;
+                updateShape = true;
+            }
         }
+
+        // Update the shapes location if needed
+        if (updateShape){
+            if (lastShape.Name != NO_SHAPE){
+                ClearShape(lastOffset, lastShape);
+            }
+            
+            lastOffset = playerOffset;
+            lastShape = currentShape;
+
+            DrawShape(playerOffset, currentShape);
+            matrix.show();
+        }
+
+        delay(1);
+    }
+    break;
+    case END_GAME:
+
+        break;
     }
 }
