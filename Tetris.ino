@@ -274,38 +274,71 @@ int GetPixel(Location_t location)
   return matrix.getPixelColor(address);
 }
 
+bool ContainsFlag(int input, int flag){
+    return input & (!flag) > 0;
+}
 
+Collision_e detectCollision(Location_t playerPostion, Shape_t shape)
+{
+    Location_t* points = PlotShape(playerPostion, shape);
 
-// void detectCollision(Location_t playerPostion, Shape_t shape)
-// {
-//     for (int y = 0; y < sizeof(shape.Points); ++y)
-//     {
-//         Location_t location = shape.Points[y];
+    int result = NO_COLLISION;
 
-//         matrix.drawPixel(location.X + playerPostion.X,
-//                          location.Y + playerPostion.Y -2,
-//                          shape.Color);
+    for (int i = 0; i < POINTS_PER_SHAPE; ++i)
+    {
+        Location_t location = points[i];
 
-        
-//         if (GetPixel(location.Y-1) != BACKGROUND_COLOR)
-//         {
-//             return COLLISION_ON_BOTTOM;
-//         }
-//         else if (GetPixel(location.X-1) != BACKGROUND_COLOR)
-//         {
-//             return COLLISION_ON_LEFT;
-//         }
-//         else if (GetPixel(location.X+1) != BACKGROUND_COLOR)
-//         {
-//             return COLLISION_ON_RIGHT;
-//         }
-//         else
-//         {
-//             return NO_COLLISION;
-//         }
-//     }
-//     }
-// }
+        // Check for bottom collistions
+        if (!ContainsFlag(result, COLLISION_ON_BOTTOM))
+        {
+            if (location.Y >= (GameOffsetY + GameSizeY)){
+                result |= COLLISION_ON_BOTTOM;
+            } else {
+                ++location.Y;
+                
+                if (GetPixel(location) != BACKGROUND_COLOR){
+                    result |= COLLISION_ON_BOTTOM;
+                }
+
+                -- location.Y;
+            }
+        }
+
+        // Check for left collistions
+        if (!ContainsFlag(result, COLLISION_ON_LEFT))
+        {
+            if (location.X <= GameOffsetX){
+                result |=  COLLISION_ON_LEFT;
+            } else {
+                --location.X;
+                
+                if (GetPixel(location) != BACKGROUND_COLOR){
+                    result |= COLLISION_ON_LEFT;
+                }
+
+                ++location.X;
+            }
+        }
+
+        // Check for right collistions
+        if (!ContainsFlag(result, COLLISION_ON_RIGHT))
+        {
+            if (location.X >= (GameOffsetX + GameSizeX)){
+                result |=  COLLISION_ON_RIGHT;
+            } else {
+                ++location.X;
+                
+                if (GetPixel(location) != BACKGROUND_COLOR){
+                    result |= COLLISION_ON_RIGHT;
+                }
+
+                --location.X;
+            }
+        }
+    }
+
+    return (Collision_e)result;
+}
 
 void setup()
 {
@@ -338,11 +371,14 @@ void loop()
         GameState = RUNNING_GAME;
         break;
     case RUNNING_GAME:
+    {
     ++playerOffset.Y;
     DrawShape(playerOffset, currentShape);
     matrix.show();
 
-    if (playerOffset.Y == 15)
+    Collision_e collision = detectCollision(playerOffset, currentShape);
+
+    if (ContainsFlag(collision, COLLISION_ON_BOTTOM))
     {
         playerOffset.Y = 0;
         currentShape = nextShape;
@@ -377,6 +413,7 @@ void loop()
             RotateShape(&currentShape);
             break;
         }
+    }
         break;
     case END_GAME:
 
