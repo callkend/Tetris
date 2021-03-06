@@ -49,19 +49,32 @@ typedef enum
     SQUARE,
 } Shape_e;
 
+typedef enum {
+    ROTATE_TRANSPOSE,
+    ROTATE_NEGATE,
+} ShapeRotate_e;
+
+typedef struct
+{   
+    int8_t X;
+    int8_t Y;
+} ShapePoint_t;
+
 typedef struct
 {
    byte X : 4;
    byte Y : 4;
 } Location_t;
 
+#define POINTS_PER_SHAPE 4
 typedef struct
 {
     Shape_e Name;
     uint16_t Color;
 
-    Location_t Points[4];
+    ShapePoint_t Points[POINTS_PER_SHAPE];
 
+    ShapeRotate_e NextRotate;
 } Shape_t;
 
 Shape_t GetRandomShape(void)
@@ -74,55 +87,87 @@ Shape_t GetRandomShape(void)
     {
     case LINE:
         result.Color = LINE_COLOR;
-        result.Points[0] = {1, 0};
-        result.Points[1] = {1, 1};
-        result.Points[2] = {1, 2};
-        result.Points[3] = {1, 3};
+        result.Points[0] = {0, -3};
+        result.Points[1] = {0, -1};
+        result.Points[2] = {0, 1};
+        result.Points[3] = {0, 3};
         break;
     case NORMAL_L:
         result.Color = NORMAL_L_COLOR;
-        result.Points[0] = {1, 0};
-        result.Points[1] = {1, 1};
-        result.Points[2] = {1, 2};
-        result.Points[3] = {2, 2};
+        result.Points[0] = {-1, 2};
+        result.Points[1] = {-1, 0};
+        result.Points[2] = {-1, -2};
+        result.Points[3] = {1, -2};
         break;
     case BACKWARDS_L:
         result.Color = BACKWARD_L_COLOR;
-        result.Points[0] = {2, 0};
-        result.Points[1] = {2, 1};
-        result.Points[2] = {2, 2};
-        result.Points[3] = {1, 2};
+        result.Points[0] = {1, 2};
+        result.Points[1] = {1, 0};
+        result.Points[2] = {-1, -2};
+        result.Points[3] = {1, -2};
         break;
     case NORMAL_T:
         result.Color = NORMAL_T_COLOR;
-        result.Points[0] = {1, 1};
-        result.Points[1] = {0, 2};
-        result.Points[2] = {1, 2};
-        result.Points[3] = {2, 2};
+        result.Points[0] = {0, 1};
+        result.Points[1] = {-2, -1};
+        result.Points[2] = {0, -1};
+        result.Points[3] = {2, -1};
         break;
     case NORMAL_Z:
         result.Color = NORMAL_Z_COLOR;
-        result.Points[0] = {0, 2};
-        result.Points[1] = {1, 2};
-        result.Points[2] = {1, 1};
-        result.Points[3] = {2, 1};
+        result.Points[0] = {-2, 1};
+        result.Points[1] = {0, 1};
+        result.Points[2] = {0, -1};
+        result.Points[3] = {2, -1};
         break;
     case BACKWARDS_Z:
         result.Color = BACKWARD_Z_COLOR;
         result.Points[0] = {0, 1};
-        result.Points[1] = {1, 1};
-        result.Points[2] = {1, 2};
-        result.Points[3] = {2, 2};
+        result.Points[1] = {2, 1};
+        result.Points[2] = {-2, -1};
+        result.Points[3] = {0, -1};
         break;
     case SQUARE:
         result.Color = SQUARE_COLOR;
         result.Points[0] = {1, 1};
-        result.Points[1] = {1, 2};
-        result.Points[2] = {2, 1};
-        result.Points[3] = {2, 2};
+        result.Points[3] = {1, -1};
+        result.Points[1] = {-1, 1};
+        result.Points[2] = {-1, -1};
         break;
     }
     return result;
+}
+
+Shape_t currentShape;
+Shape_t nextShape;
+Location_t playerOffset;
+
+void RotateShape(Shape_t* shape){
+
+    ShapePoint_t* point;
+    if (shape->NextRotate == ROTATE_TRANSPOSE)
+    {
+        // Transpose the shape
+        shape->NextRotate = ROTATE_NEGATE;
+        uint8_t temp;
+        for (int i = 0; i < POINTS_PER_SHAPE; ++i){
+            point = &shape->Points[i];
+
+            // Fancy XOR Swap;
+            point->X ^= point->Y;
+            point->Y ^= point->X;
+            point->X ^= point->X;
+        } 
+    } else {
+        // Negate the shape
+        shape->NextRotate = ROTATE_TRANSPOSE;
+        for (int i = 0; i < POINTS_PER_SHAPE; ++i){
+            point = &shape->Points[i];
+
+            point->X *= -1;
+            point->Y *= -1;
+        } 
+    }
 }
 
 #define PreviewOffsetX 13
@@ -130,34 +175,40 @@ Shape_t GetRandomShape(void)
 #define PreviewSizeX 3
 #define PreviewSizeY 4
 
-Shape_t currentShape;
-Shape_t nextShape;
-Location_t playerOffset;
-
 void DrawPreview(Shape_t shape)
 {
     matrix.fillRect(PreviewOffsetX, PreviewOffsetY,
                     PreviewSizeX, PreviewSizeY, BACKGROUND_COLOR);
 
-        for (int i = 0; i < sizeof(shape.Points); ++i)
-    {
-        Location_t location = shape.Points[i];
+    const Location_t previewCenter = { PreviewOffsetX + 1, 
+                                       PreviewSizeY + 2};
 
-        matrix.drawPixel(location.X + PreviewOffsetX,
-                         location.Y + PreviewOffsetY,
-                         shape.Color);
+    DrawShape(previewCenter, shape);
+}
+
+Location_t* PlotShape (Location_t center, Shape_t shape){
+
+    Location_t result[POINTS_PER_SHAPE];
+
+    for (int i = 0; i < POINTS_PER_SHAPE; ++i)
+    {
+        ShapePoint_t location = shape.Points[i];
+        location.X = location.X >> 1;
+        location.Y = location.Y >> 1;
+
+        result[i] = { (uint8_t)(location.X + (int8_t)center.X),
+                      (uint8_t)(location.Y + (int8_t)center.Y) };
     }
 }
 
-void DrawShape(Location_t playerPostion, Shape_t shape)
+void DrawShape(Location_t center, Shape_t shape)
 {
-        for (int i = 0; i < sizeof(shape.Points); ++i)
-    {
-        Location_t location = shape.Points[i];
+    Location_t* points = PlotShape(center, shape);
 
-        matrix.drawPixel(location.X + playerPostion.X,
-                         location.Y + playerPostion.Y -2,
-                         shape.Color);
+    for (int i = 0; i < POINTS_PER_SHAPE; ++i)
+    {
+        matrix.drawPixel(points->X, points->Y, shape.Color);
+        ++points;
     }
 }
 
@@ -178,7 +229,7 @@ void setup()
     //Serial.begin(9600);
     randomSeed(analogRead(0));
     GameState = START_GAME;
-    //Intializes the LED matrix, clears it, and setups the IO
+    //Initializes the LED matrix, clears it, and setups the IO
     initPortableArcade(&matrix);
 }
 
