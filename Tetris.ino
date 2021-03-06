@@ -283,17 +283,14 @@ uint8_t LineErase()
 
             if (linesCleared > 0)
             {
+                // Shift pixel
                 matrix.drawPixel(playableSpace.X, playableSpace.Y + linesCleared, pixel);
             }
-
-            // Shift pixel
         }
 
         if (fillCount >= GameSizeX)
         {
             ++linesCleared;
-            Serial.print("LineCleared ");
-            Serial.println(linesCleared);
         }
     }
 
@@ -320,7 +317,33 @@ bool ContainsFlag(int input, int flag)
     return (input & flag) > 0;
 }
 
-Collision_e detectCollision(Location_t playerPostion, Shape_t shape)
+// Returns true if points contains the given point
+bool ContainsPoint(Location_t* points, Location_t point){
+    for (int i = 0; i < POINTS_PER_SHAPE; ++i){
+        Location_t location = points[i];
+
+        if (location.X == point.X && location.Y == point.Y){
+            return true;
+        }
+    }
+
+    return false;
+}
+
+// Returns true if the given point collies with any colored block
+bool PointCollides(Location_t* points, Location_t point){
+
+    if (ContainsPoint(points, point)){
+        // Return false if the point collides with its self
+        return false;
+    } else {
+        return GetPixel(point) != BACKGROUND_COLOR
+    }
+}
+
+// Returns the types of collistions the given shape will encounter 
+// at a given location
+Collision_e DetectCollision(Location_t playerPostion, Shape_t shape)
 {
     Location_t *points = PlotShape(playerPostion, shape);
 
@@ -337,17 +360,17 @@ Collision_e detectCollision(Location_t playerPostion, Shape_t shape)
             {
                 result |= COLLISION_ON_BOTTOM;
             }
-            // else
-            // {
-            //     ++location.Y;
+            else
+            {
+                ++location.Y;
 
-            //     if (GetPixel(location) != BACKGROUND_COLOR)
-            //     {
-            //         result |= COLLISION_ON_BOTTOM;
-            //     }
+                if (PointCollides(points, location))
+                {
+                    result |= COLLISION_ON_BOTTOM;
+                }
 
-            //     --location.Y;
-            // }
+                --location.Y;
+            }
         }
 
         // Check for left collistions
@@ -357,17 +380,17 @@ Collision_e detectCollision(Location_t playerPostion, Shape_t shape)
             {
                 result |= COLLISION_ON_LEFT;
             }
-            // else
-            // {
-            //     --location.X;
+            else
+            {
+                --location.X;
 
-            //     if (GetPixel(location) != BACKGROUND_COLOR)
-            //     {
-            //         result |= COLLISION_ON_LEFT;
-            //     }
+                if (PointCollides(points, location))
+                {
+                    result |= COLLISION_ON_LEFT;
+                }
 
-            //     ++location.X;
-            // }
+                ++location.X;
+            }
         }
 
         // Check for right collistions
@@ -377,17 +400,17 @@ Collision_e detectCollision(Location_t playerPostion, Shape_t shape)
             {
                 result |= COLLISION_ON_RIGHT;
             }
-            // else
-            // {
-            //     ++location.X;
+            else
+            {
+                ++location.X;
 
-            //     if (GetPixel(location) != BACKGROUND_COLOR)
-            //     {
-            //         result |= COLLISION_ON_RIGHT;
-            //     }
+                if (PointCollides(points, location))
+                {
+                    result |= COLLISION_ON_RIGHT;
+                }
 
-            //     --location.X;
-            // }
+                --location.X;
+            }
         }
     }
 
@@ -435,7 +458,7 @@ void loop()
     {
         // Move the shape left and right
         Direction_e currentDirection = GetDirection();
-        Collision_e collision = detectCollision(playerOffset, currentShape);
+        Collision_e collision = DetectCollision(playerOffset, currentShape);
 
         bool updateShape = false;
 
@@ -470,7 +493,7 @@ void loop()
                 Shape_t shapeStorage = currentShape;
                 RotateShape(&currentShape);
 
-                Collision_e rotateCollision = detectCollision(playerOffset, currentShape);
+                Collision_e rotateCollision = DetectCollision(playerOffset, currentShape);
 
                 if (rotateCollision == (COLLISION_ON_LEFT | COLLISION_ON_RIGHT))
                 {
@@ -488,7 +511,7 @@ void loop()
 
                     if (currentShape.Name == LINE)
                     {
-                        rotateCollision = detectCollision(playerOffset, currentShape);
+                        rotateCollision = DetectCollision(playerOffset, currentShape);
 
                         if (rotateCollision == (COLLISION_ON_LEFT | COLLISION_ON_RIGHT))
                         {
