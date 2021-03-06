@@ -40,6 +40,14 @@ const uint16_t WALL_COLOR = matrix.Color(119, 119, 119);
 
 typedef enum
 {
+    COLLISION_ON_RIGHT,
+    COLLISION_ON_LEFT,
+    COLLISION_ON_BOTTOM,
+    NO_COLLISION,
+} Collision_e;
+
+typedef enum
+{
     LINE,
     NORMAL_L,
     BACKWARDS_L,
@@ -49,10 +57,14 @@ typedef enum
     SQUARE,
 } Shape_e;
 
-typedef struct
+typedef union
 {
-   byte X : 4;
-   byte Y : 4;
+    struct
+    {
+        byte X : 4;
+        byte Y : 4;
+    };
+
 } Location_t;
 
 typedef struct
@@ -139,9 +151,9 @@ void DrawPreview(Shape_t shape)
     matrix.fillRect(PreviewOffsetX, PreviewOffsetY,
                     PreviewSizeX, PreviewSizeY, BACKGROUND_COLOR);
 
-        for (int i = 0; i < sizeof(shape.Points); ++i)
+        for (int y = 0; y < sizeof(shape.Points); ++y)
     {
-        Location_t location = shape.Points[i];
+        Location_t location = shape.Points[y];
 
         matrix.drawPixel(location.X + PreviewOffsetX,
                          location.Y + PreviewOffsetY,
@@ -151,9 +163,9 @@ void DrawPreview(Shape_t shape)
 
 void DrawShape(Location_t playerPostion, Shape_t shape)
 {
-        for (int i = 0; i < sizeof(shape.Points); ++i)
+        for (int y = 0; y < sizeof(shape.Points); ++y)
     {
-        Location_t location = shape.Points[i];
+        Location_t location = shape.Points[y];
 
         matrix.drawPixel(location.X + playerPostion.X,
                          location.Y + playerPostion.Y -2,
@@ -161,11 +173,94 @@ void DrawShape(Location_t playerPostion, Shape_t shape)
     }
 }
 
+#define GameOffsetX 1
+#define GameOffsetY 0
+#define GameSizeX 10
+#define GameSizeY 16
+
+void LineErase()
+{
+    int fillCount;
+    Location_t playableSpace;
+    for(int y = GameOffsetY; y < GameSizeY;)
+    {
+        playableSpace.Y = y;
+        fillCount = 0;
+        for (int x = GameOffsetX; x <= GameSizeX;)
+        {
+            playableSpace.X = x;
+            Serial.println(fillCount);
+            if (GetPixel(playableSpace) == BACKGROUND_COLOR){
+                break;
+            } 
+            else {
+              ++fillCount;
+                if(fillCount >= GameSizeX)
+                {
+                    matrix.drawLine(GameOffsetX, y,
+                    GameOffsetX + GameOffsetX, y,
+                    BACKGROUND_COLOR);
+
+                    // TODO: Drop everything one block
+                }
+            }
+             ++x;
+        }
+         ++y;
+    }
+}
+
+int GetPixel(Location_t location)
+{
+  uint8_t address = (location.Y << 4) + location.X;
+
+  // Correct for the ZigZag in the LED Array
+  if (!bitRead(address, 4))
+  {
+    address ^= 0x0F;
+  }
+  //matrix.setPixelColor(address, LINE_COLOR);
+  return matrix.getPixelColor(address);
+}
+
+
+
+// void detectCollision(Location_t playerPostion, Shape_t shape)
+// {
+//     for (int y = 0; y < sizeof(shape.Points); ++y)
+//     {
+//         Location_t location = shape.Points[y];
+
+//         matrix.drawPixel(location.X + playerPostion.X,
+//                          location.Y + playerPostion.Y -2,
+//                          shape.Color);
+
+        
+//         if (GetPixel(location.Y-1) != BACKGROUND_COLOR)
+//         {
+//             return COLLISION_ON_BOTTOM;
+//         }
+//         else if (GetPixel(location.X-1) != BACKGROUND_COLOR)
+//         {
+//             return COLLISION_ON_LEFT;
+//         }
+//         else if (GetPixel(location.X+1) != BACKGROUND_COLOR)
+//         {
+//             return COLLISION_ON_RIGHT;
+//         }
+//         else
+//         {
+//             return NO_COLLISION;
+//         }
+//     }
+//     }
+// }
+
 void clearShape(Location_t playerPostion, Shape_t shape)
 {
-        for (int i = 0; i < sizeof(shape.Points); ++i)
+        for (int y = 0; y < sizeof(shape.Points); ++y)
     {
-        Location_t location = shape.Points[i];
+        Location_t location = shape.Points[y];
 
         matrix.drawPixel(location.X + playerPostion.X,
                          location.Y + playerPostion.Y -2,
@@ -175,7 +270,7 @@ void clearShape(Location_t playerPostion, Shape_t shape)
 
 void setup()
 {
-    //Serial.begin(9600);
+    Serial.begin(9600);
     randomSeed(analogRead(0));
     GameState = START_GAME;
     //Intializes the LED matrix, clears it, and setups the IO
@@ -207,13 +302,18 @@ void loop()
     ++playerOffset.Y;
     DrawShape(playerOffset, currentShape);
     matrix.show();
-    clearShape(playerOffset, currentShape);
+    
     if (playerOffset.Y == 15)
     {
         playerOffset.Y = 0;
         currentShape = nextShape;
         nextShape = GetRandomShape();
         DrawPreview(nextShape);
+        LineErase();
+    }
+    else
+    {
+        clearShape(playerOffset, currentShape);
     }
     
         switch (GetDirection())
