@@ -13,7 +13,6 @@ Tetris
 
 #include "portableArcade.h"
 
-
 enum GameState_e
 {
     PRE_GAME,
@@ -40,10 +39,10 @@ const uint16_t WALL_COLOR = matrix.Color(119, 119, 119);
 
 typedef enum
 {
-    COLLISION_ON_RIGHT,
-    COLLISION_ON_LEFT,
-    COLLISION_ON_BOTTOM,
-    NO_COLLISION,
+    NO_COLLISION = 0,
+    COLLISION_ON_RIGHT = 1,
+    COLLISION_ON_LEFT = 2,
+    COLLISION_ON_BOTTOM = 4,
 } Collision_e;
 
 typedef enum
@@ -58,7 +57,7 @@ typedef enum
 } Shape_e;
 
 typedef struct
-{   
+{
     int8_t X;
     int8_t Y;
 } ShapePoint_t;
@@ -144,33 +143,38 @@ Shape_t currentShape;
 Shape_t nextShape;
 Location_t playerOffset;
 
-ShapePoint_t TransposePoint(ShapePoint_t point){
+ShapePoint_t TransposePoint(ShapePoint_t point)
+{
     int8_t temp = point.X;
     point.X = point.Y;
     point.Y = temp;
     return point;
 }
 
-ShapePoint_t RotatePointClockwise(ShapePoint_t point){
+ShapePoint_t RotatePointClockwise(ShapePoint_t point)
+{
 
     point.Y *= -1;
     point = TransposePoint(point);
     return point;
 }
 
-ShapePoint_t RotatePointAntiClockwise(ShapePoint_t point){
+ShapePoint_t RotatePointAntiClockwise(ShapePoint_t point)
+{
 
     point = TransposePoint(point);
     point.Y *= -1;
     return point;
 }
 
-void RotateShape(Shape_t* shape){
+void RotateShape(Shape_t *shape)
+{
 
-    ShapePoint_t* point;
+    ShapePoint_t *point;
 
-    for (int i = 0; i < POINTS_PER_SHAPE; ++i){
-        point = &shape->Points[i];
+    for (int y = 0; y < POINTS_PER_SHAPE; ++y)
+    {
+        point = &shape->Points[y];
         *point = RotatePointClockwise(*point);
     }
 }
@@ -185,32 +189,34 @@ void DrawPreview(Shape_t shape)
     matrix.fillRect(PreviewOffsetX, PreviewOffsetY,
                     PreviewSizeX, PreviewSizeY, BACKGROUND_COLOR);
 
-    const Location_t previewCenter = { PreviewOffsetX + 1, 
-                                       PreviewOffsetY + 2};
+    const Location_t previewCenter = {PreviewOffsetX + 1,
+                                      PreviewOffsetY + 2};
 
     DrawShape(previewCenter, shape);
 }
 
-Location_t* PlotShape (Location_t center, Shape_t shape){
+Location_t *PlotShape(Location_t center, Shape_t shape)
+{
 
     static Location_t result[POINTS_PER_SHAPE];
 
-    for (int i = 0; i < POINTS_PER_SHAPE; ++i)
+    for (int y = 0; y < POINTS_PER_SHAPE; ++y)
     {
-        ShapePoint_t location = shape.Points[i];
+        ShapePoint_t location = shape.Points[y];
         location.X = location.X >> 1;
         location.Y = location.Y >> 1;
 
-        result[i] = { (uint8_t)(location.X + (int8_t)center.X),
-                      (uint8_t)(location.Y + (int8_t)center.Y) };
+        result[y] = {(uint8_t)(location.X + (int8_t)center.X),
+                     (uint8_t)(location.Y + (int8_t)center.Y)};
     }
 
     return result;
 }
 
-void DrawPoints(Location_t* points, int count, int color){
+void DrawPoints(Location_t *points, int count, int color)
+{
 
-    for (int i = 0; i < count; i++)
+    for (int y = 0; y < count; y++)
     {
         matrix.drawPixel(points->X, points->Y, color);
         ++points;
@@ -235,52 +241,60 @@ void ClearShape(Location_t center, Shape_t shape)
 void LineErase()
 {
     int fillCount;
-    
+
     Location_t playableSpace;
-    for(int y = GameOffsetY; y < GameSizeY; ++y)
+    for (int y = GameOffsetY; y < (GameOffsetY + GameSizeY); ++y)
     {
         playableSpace.Y = y;
         fillCount = 0;
-        for (int x = GameOffsetX; x < GameSizeX; ++x)
+        for (int x = GameOffsetX; x < (GameOffsetX + GameSizeX); ++x)
         {
             playableSpace.X = x;
-            if (GetPixel(playableSpace) == BACKGROUND_COLOR){
+            if (GetPixel(playableSpace) == BACKGROUND_COLOR)
+            {
+                Serial.print("Break -> ");
+                Serial.print(y);
+                Serial.print(' ');
+                Serial.println(x - GameOffsetX);
                 break;
-            } else {
-                if(++fillCount >= GameSizeX)
-                {
-                    matrix.drawLine(GameOffsetX, y,
-                    GameOffsetX + GameOffsetX, y,
-                    BACKGROUND_COLOR);
+            }
+            else if (++fillCount >= GameSizeX)
+            {
+                Serial.print("Fill -> ");
+                Serial.println(y);
+                matrix.drawLine(GameOffsetX, y,
+                                GameSizeX, y,
+                                BACKGROUND_COLOR);
 
-                    // TODO: Drop everything one block
-                }
+                // TODO: Drop everything one block
             }
         }
     }
 }
 
-int GetPixel(Location_t location)
+uint32_t GetPixel(Location_t location)
 {
-  uint8_t address = (location.Y << 4) + location.X;
+    uint8_t address = (location.Y << 4) + location.X;
 
-  // Correct for the ZigZag in the LED Array
-  if (!bitRead(address, 4))
-  {
-    address ^= 0x0F;
-  }
+    // Correct for the ZigZag in the LED Array
+    if (!bitRead(address, 4))
+    {
+        address ^= 0x0F;
+    }
 
-  //matrix.setPixelColor(address, COLOR_BLUE);
-  return matrix.getPixelColor(address);
+    //matrix.setPixelColor(address, LINE_COLOR);
+    // Maybe add code to make this uint32_t color the same as the uint16_t colors
+    return matrix.getPixelColor(address);
 }
 
-bool ContainsFlag(int input, int flag){
+bool ContainsFlag(int input, int flag)
+{
     return input & (!flag) > 0;
 }
 
 Collision_e detectCollision(Location_t playerPostion, Shape_t shape)
 {
-    Location_t* points = PlotShape(playerPostion, shape);
+    Location_t *points = PlotShape(playerPostion, shape);
 
     int result = NO_COLLISION;
 
@@ -291,28 +305,36 @@ Collision_e detectCollision(Location_t playerPostion, Shape_t shape)
         // Check for bottom collistions
         if (!ContainsFlag(result, COLLISION_ON_BOTTOM))
         {
-            if (location.Y >= (GameOffsetY + GameSizeY)){
+            if (location.Y >= (GameOffsetY + GameSizeY))
+            {
                 result |= COLLISION_ON_BOTTOM;
-            } else {
+            }
+            else
+            {
                 ++location.Y;
-                
-                if (GetPixel(location) != BACKGROUND_COLOR){
+
+                if (GetPixel(location) != BACKGROUND_COLOR)
+                {
                     result |= COLLISION_ON_BOTTOM;
                 }
 
-                -- location.Y;
+                --location.Y;
             }
         }
 
         // Check for left collistions
         if (!ContainsFlag(result, COLLISION_ON_LEFT))
         {
-            if (location.X <= GameOffsetX){
-                result |=  COLLISION_ON_LEFT;
-            } else {
+            if (location.X <= GameOffsetX)
+            {
+                result |= COLLISION_ON_LEFT;
+            }
+            else
+            {
                 --location.X;
-                
-                if (GetPixel(location) != BACKGROUND_COLOR){
+
+                if (GetPixel(location) != BACKGROUND_COLOR)
+                {
                     result |= COLLISION_ON_LEFT;
                 }
 
@@ -323,12 +345,16 @@ Collision_e detectCollision(Location_t playerPostion, Shape_t shape)
         // Check for right collistions
         if (!ContainsFlag(result, COLLISION_ON_RIGHT))
         {
-            if (location.X >= (GameOffsetX + GameSizeX)){
-                result |=  COLLISION_ON_RIGHT;
-            } else {
+            if (location.X >= (GameOffsetX + GameSizeX))
+            {
+                result |= COLLISION_ON_RIGHT;
+            }
+            else
+            {
                 ++location.X;
-                
-                if (GetPixel(location) != BACKGROUND_COLOR){
+
+                if (GetPixel(location) != BACKGROUND_COLOR)
+                {
                     result |= COLLISION_ON_RIGHT;
                 }
 
@@ -339,6 +365,8 @@ Collision_e detectCollision(Location_t playerPostion, Shape_t shape)
 
     return (Collision_e)result;
 }
+
+uint8_t frame = 0;
 
 void setup()
 {
@@ -351,73 +379,82 @@ void setup()
 
 void loop()
 {
-    switch (GameState)
+    if (++frame < 200)
     {
-    case PRE_GAME:
-        /* code */
-        break;
-    default:
-    case START_GAME:
-        playerOffset.X = 5;
-        playerOffset.Y = 0;
-        matrix.fill(BACKGROUND_COLOR);
-        nextShape = GetRandomShape();
-        DrawPreview(nextShape);
-        matrix.drawLine(0, 0, 0, 15, WALL_COLOR);
-        matrix.drawLine(11, 0, 11, 15, WALL_COLOR);
-        matrix.fillRect(11,6,15,15,WALL_COLOR);
-        currentShape = GetRandomShape();
-        matrix.show();
-        GameState = RUNNING_GAME;
-        break;
-    case RUNNING_GAME:
-    {
-    ++playerOffset.Y;
-    DrawShape(playerOffset, currentShape);
-    matrix.show();
-
-    Collision_e collision = detectCollision(playerOffset, currentShape);
-
-    if (ContainsFlag(collision, COLLISION_ON_BOTTOM))
-    {
-        playerOffset.Y = 0;
-        currentShape = nextShape;
-        nextShape = GetRandomShape();
-        DrawPreview(nextShape);
-        LineErase();
+        delay(1);
     }
     else
     {
-        ClearShape(playerOffset, currentShape);
-    }
-    
-        switch (GetDirection())
+        frame = 0;
+        switch (GameState)
         {
-        case LEFT:
-        if(playerOffset.X > 2){
-            --playerOffset.X;
+        case PRE_GAME:
+            /* code */
+            break;
+        default:
+        case START_GAME:
+            playerOffset.X = 5;
+            playerOffset.Y = 0;
+            matrix.fill(BACKGROUND_COLOR);
+            nextShape = GetRandomShape();
+            DrawPreview(nextShape);
+            matrix.drawLine(0, 0, 0, 15, WALL_COLOR);
+            matrix.drawLine(11, 0, 11, 15, WALL_COLOR);
+            matrix.fillRect(11, 6, 15, 15, WALL_COLOR);
+            currentShape = GetRandomShape();
+            matrix.show();
+            GameState = RUNNING_GAME;
+            break;
+        case RUNNING_GAME:
+        {
+            ++playerOffset.Y;
+            DrawShape(playerOffset, currentShape);
+            matrix.show();
+
+            Collision_e collision = detectCollision(playerOffset, currentShape);
+
+            if (playerOffset.Y == 15)
+            {
+                playerOffset.Y = 0;
+                currentShape = nextShape;
+                nextShape = GetRandomShape();
+                DrawPreview(nextShape);
+                LineErase();
+            }
+            else
+            {
+                ClearShape(playerOffset, currentShape);
+            }
+
+            switch (GetDirection())
+            {
+            case LEFT:
+                if (playerOffset.X > 2)
+                {
+                    --playerOffset.X;
+                }
+                break;
+
+            case RIGHT:
+                if (playerOffset.X < 9)
+                {
+                    ++playerOffset.X;
+                }
+                break;
+
+            case DOWN:
+
+                break;
+
+            case UP:
+                RotateShape(&currentShape);
+                break;
+            }
         }
-            break;
-    
-        case RIGHT:
-        if(playerOffset.X < 9){
-            ++playerOffset.X;
-        }
-            break;
+        break;
+        case END_GAME:
 
-        case DOWN:
-
-            break;
-
-        case UP:
-            RotateShape(&currentShape);
             break;
         }
     }
-        break;
-    case END_GAME:
-
-        break;
-    }
-    delay(250);
 }
