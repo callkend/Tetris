@@ -161,6 +161,18 @@ void DrawShape(Location_t playerPostion, Shape_t shape)
     }
 }
 
+void clearShape(Location_t playerPostion, Shape_t shape)
+{
+        for (int i = 0; i < sizeof(shape.Points); ++i)
+    {
+        Location_t location = shape.Points[i];
+
+        matrix.drawPixel(location.X + playerPostion.X,
+                         location.Y + playerPostion.Y -2,
+                         BACKGROUND_COLOR);
+    }
+}
+
 void setup()
 {
     //Serial.begin(9600);
@@ -195,6 +207,7 @@ void loop()
     ++playerOffset.Y;
     DrawShape(playerOffset, currentShape);
     matrix.show();
+    clearShape(playerOffset, currentShape);
     if (playerOffset.Y == 15)
     {
         playerOffset.Y = 0;
