@@ -79,6 +79,28 @@ typedef struct
     ShapePoint_t Points[POINTS_PER_SHAPE];
 } Shape_t;
 
+typedef union{
+
+    struct{
+        uint8_t R;
+        uint8_t G;
+        uint8_t B;
+        uint8_t W;
+    };
+
+    struct {
+        uint32_t All;
+    };
+} Color_t;
+ 
+uint16_t Color32to16(uint32_t input){
+
+    Color_t c ;
+    c.All = input;
+
+    return ((uint16_t)(c.R & 0xF8) << 8) | ((uint16_t)(c.G & 0xFC) << 3) | (c.B>> 3);
+}
+
 Shape_t GetRandomShape(void)
 {
 
@@ -239,36 +261,46 @@ void ClearShape(Location_t center, Shape_t shape)
 #define GameSizeX 10
 #define GameSizeY 16
 
-void LineErase()
+uint8_t LineErase()
 {
+    uint8_t linesCleared = 0;
     int fillCount;
 
     Location_t playableSpace;
-    for (int y = GameOffsetY; y < (GameOffsetY + GameSizeY); ++y)
+    for (int y = (GameOffsetY + GameSizeY - 1); y >= GameOffsetY; --y)
     {
         playableSpace.Y = y;
         fillCount = 0;
         for (int x = GameOffsetX; x < (GameOffsetX + GameSizeX); ++x)
         {
             playableSpace.X = x;
-            if (GetPixel(playableSpace) == BACKGROUND_COLOR)
-            {
-                break;
-            }
-            else if (++fillCount >= GameSizeX)
-            {
-                Serial.println(y);
-                matrix.drawLine(GameOffsetX, y,
-                                GameSizeX, y,
-                                BACKGROUND_COLOR);
+            uint16_t pixel = GetPixel(playableSpace);
 
-                // TODO: Drop everything one block
+            if (pixel != BACKGROUND_COLOR)
+            {
+                ++fillCount;
             }
+
+            if (linesCleared > 0)
+            {
+                matrix.drawPixel(playableSpace.X, playableSpace.Y + linesCleared, pixel);
+            }
+
+            // Shift pixel
+        }
+
+        if (fillCount >= GameSizeX)
+        {
+            ++linesCleared;
+            Serial.print("LineCleared ");
+            Serial.println(linesCleared);
         }
     }
+
+    return linesCleared;
 }
 
-uint32_t GetPixel(Location_t location)
+uint16_t GetPixel(Location_t location)
 {
     uint8_t address = (location.Y << 4) + location.X;
 
@@ -280,7 +312,7 @@ uint32_t GetPixel(Location_t location)
 
     //matrix.setPixelColor(address, LINE_COLOR);
     // Maybe add code to make this uint32_t color the same as the uint16_t colors
-    return matrix.getPixelColor(address);
+    return Color32to16(matrix.getPixelColor(address));
 }
 
 bool ContainsFlag(int input, int flag)
@@ -294,7 +326,6 @@ Collision_e detectCollision(Location_t playerPostion, Shape_t shape)
 
     int result = NO_COLLISION;
 
-
     for (int i = 0; i < POINTS_PER_SHAPE; ++i)
     {
         Location_t location = points[i];
@@ -302,7 +333,7 @@ Collision_e detectCollision(Location_t playerPostion, Shape_t shape)
         // Check for bottom collistions
         if (!ContainsFlag(result, COLLISION_ON_BOTTOM))
         {
-            if (location.Y >= (GameOffsetY + GameSizeY -1))
+            if (location.Y >= (GameOffsetY + GameSizeY - 1))
             {
                 result |= COLLISION_ON_BOTTOM;
             }
@@ -313,7 +344,6 @@ Collision_e detectCollision(Location_t playerPostion, Shape_t shape)
             //     if (GetPixel(location) != BACKGROUND_COLOR)
             //     {
             //         result |= COLLISION_ON_BOTTOM;
-            //         Serial.println("B2");
             //     }
 
             //     --location.Y;
@@ -420,10 +450,6 @@ void loop()
                 {
                     --playerOffset.X;
                     updateShape = true;
-                } 
-                else 
-                {
-                    Serial.println("L");
                 }
                 break;
 
@@ -433,10 +459,6 @@ void loop()
                     ++playerOffset.X;
                     updateShape = true;
                 }
-                else 
-                {
-                    Serial.println("R");
-                }
                 break;
 
             case DOWN:
@@ -444,42 +466,46 @@ void loop()
                 break;
 
             case UP:
+            {
+                Shape_t shapeStorage = currentShape;
+                RotateShape(&currentShape);
+
+                Collision_e rotateCollision = detectCollision(playerOffset, currentShape);
+
+                if (rotateCollision == (COLLISION_ON_LEFT | COLLISION_ON_RIGHT))
                 {
-                    Shape_t shapeStorage = currentShape;
-                    RotateShape(&currentShape);
+                    // Invalid rotation
+                    currentShape = shapeStorage;
+                }
+                else if (ContainsFlag(rotateCollision, COLLISION_ON_RIGHT))
+                {
+                    --playerOffset.X;
+                }
+                else if (ContainsFlag(rotateCollision, COLLISION_ON_LEFT))
+                {
 
-                    Collision_e rotateCollision = detectCollision(playerOffset, currentShape);
+                    ++playerOffset.X;
 
-                    if (rotateCollision == (COLLISION_ON_LEFT | COLLISION_ON_RIGHT))
+                    if (currentShape.Name == LINE)
                     {
-                        // Invalid rotation
-                        currentShape = shapeStorage;
-                    }
-                    else if (ContainsFlag(rotateCollision, COLLISION_ON_RIGHT)){
-                        --playerOffset.X;
-                    }
-                    else if (ContainsFlag(rotateCollision, COLLISION_ON_LEFT)){
+                        rotateCollision = detectCollision(playerOffset, currentShape);
 
-                        ++playerOffset.X;
-
-                        if (currentShape.Name == LINE){
-                            rotateCollision = detectCollision(playerOffset, currentShape);
-
-                            if (rotateCollision == (COLLISION_ON_LEFT | COLLISION_ON_RIGHT)){
-                                // Invalid rotation
-                                currentShape = shapeStorage;
-                            }
-                            else if (ContainsFlag(rotateCollision, COLLISION_ON_LEFT)){
-                                ++playerOffset.X;
-                            }
+                        if (rotateCollision == (COLLISION_ON_LEFT | COLLISION_ON_RIGHT))
+                        {
+                            // Invalid rotation
+                            currentShape = shapeStorage;
                         }
-                        
+                        else if (ContainsFlag(rotateCollision, COLLISION_ON_LEFT))
+                        {
+                            ++playerOffset.X;
+                        }
                     }
-
-                    updateShape = true;
                 }
 
-                break;
+                updateShape = true;
+            }
+
+            break;
             }
         }
 
@@ -487,10 +513,10 @@ void loop()
         static uint16_t downCount = 0;
         if (++downCount > 500)
         {
-            Serial.println((int)collision);
             downCount = 0;
 
-            if (ContainsFlag(collision, COLLISION_ON_BOTTOM)){
+            if (ContainsFlag(collision, COLLISION_ON_BOTTOM))
+            {
                 playerOffset.Y = 2;
                 playerOffset.X = 5;
                 currentShape = nextShape;
@@ -498,20 +524,22 @@ void loop()
                 DrawPreview(nextShape);
                 LineErase();
                 lastShape.Name = NO_SHAPE;
-                Serial.println("B");
-
-            } else {
+            }
+            else
+            {
                 ++playerOffset.Y;
                 updateShape = true;
             }
         }
 
         // Update the shapes location if needed
-        if (updateShape){
-            if (lastShape.Name != NO_SHAPE){
+        if (updateShape)
+        {
+            if (lastShape.Name != NO_SHAPE)
+            {
                 ClearShape(lastOffset, lastShape);
             }
-            
+
             lastOffset = playerOffset;
             lastShape = currentShape;
 
