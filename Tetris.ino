@@ -201,27 +201,23 @@ Location_t* PlotShape (Location_t center, Shape_t shape){
     }
 }
 
-void DrawShape(Location_t center, Shape_t shape)
-{
-    Location_t* points = PlotShape(center, shape);
+void DrawPoints(Location_t* points, int count, int color){
 
-    for (int i = 0; i < POINTS_PER_SHAPE; ++i)
+    for (int i = 0; i < count; i++)
     {
-        matrix.drawPixel(points->X, points->Y, shape.Color);
+        matrix.drawPixel(points->X, points->Y, color);
         ++points;
     }
 }
 
-void clearShape(Location_t playerPostion, Shape_t shape)
+void DrawShape(Location_t center, Shape_t shape)
 {
-        for (int i = 0; i < sizeof(shape.Points); ++i)
-    {
-        Location_t location = shape.Points[i];
+    DrawPoints(PlotShape(center, shape), POINTS_PER_SHAPE, shape.Color);
+}
 
-        matrix.drawPixel(location.X + playerPostion.X,
-                         location.Y + playerPostion.Y -2,
-                         BACKGROUND_COLOR);
-    }
+void ClearShape(Location_t center, Shape_t shape)
+{
+    DrawPoints(PlotShape(center, shape), POINTS_PER_SHAPE, BACKGROUND_COLOR);
 }
 
 void setup()
@@ -258,7 +254,7 @@ void loop()
     ++playerOffset.Y;
     DrawShape(playerOffset, currentShape);
     matrix.show();
-    clearShape(playerOffset, currentShape);
+    ClearShape(playerOffset, currentShape);
     if (playerOffset.Y == 15)
     {
         playerOffset.Y = 0;
@@ -286,7 +282,7 @@ void loop()
             break;
 
         case UP:
-
+            RotateShape(&currentShape);
             break;
         }
         break;
