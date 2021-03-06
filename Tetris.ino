@@ -49,13 +49,6 @@ typedef enum
     SQUARE,
 } Shape_e;
 
-typedef enum {
-    ROTATE_0,
-    ROTATE_90,
-    ROTATE_180,
-    ROTATE_270,
-} ShapeRotate_e;
-
 typedef struct
 {   
     int8_t X;
@@ -75,8 +68,6 @@ typedef struct
     uint16_t Color;
 
     ShapePoint_t Points[POINTS_PER_SHAPE];
-
-    ShapeRotate_e Rotation;
 } Shape_t;
 
 Shape_t GetRandomShape(void)
@@ -84,7 +75,6 @@ Shape_t GetRandomShape(void)
 
     Shape_t result;
     result.Name = (Shape_e)random(7);
-    result.Rotation = ROTATE_0;
 
     switch (result.Name)
     {
@@ -145,36 +135,34 @@ Shape_t currentShape;
 Shape_t nextShape;
 Location_t playerOffset;
 
+ShapePoint_t TransposePoint(ShapePoint_t point){
+    int8_t temp = point.X;
+    point.X = point.Y;
+    point.Y = temp;
+}
+
+ShapePoint_t RotatePointClockwise(ShapePoint_t point){
+
+    point = TransposePoint(point);
+    point.Y *= -1;
+    return point;
+}
+
+ShapePoint_t RotatePointAntiClockwise(ShapePoint_t point){
+
+    point.Y *= -1;
+    point = TransposePoint(point);
+    return point;
+}
+
 void RotateShape(Shape_t* shape){
 
     ShapePoint_t* point;
 
-    shape->Rotation == (ShapeRotate_e)(shape->Rotation + 1);
-
-    if (shape->Rotation > ROTATE_270){
-        shape->Rotation = ROTATE_0;
-    }
-
-    if (shape->Rotation == ROTATE_90 || shape->Rotation == ROTATE_180)
-    {
-        // Negate the shape
-        for (int i = 0; i < POINTS_PER_SHAPE; ++i){
-            point = &shape->Points[i];
-
-            point->X *= -1;
-            point->Y *= -1;
-        } 
-    }
-
-    // Transpose the shape
-    uint8_t temp;
     for (int i = 0; i < POINTS_PER_SHAPE; ++i){
         point = &shape->Points[i];
-        
-        temp = point->X;
-        point->X = point->Y;
-        point->Y = temp;
-    } 
+        *point = RotatePointClockwise(*point);
+    }
 }
 
 #define PreviewOffsetX 13
