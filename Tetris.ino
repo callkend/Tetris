@@ -80,52 +80,52 @@ Shape_t GetRandomShape(void)
     {
     case LINE:
         result.Color = LINE_COLOR;
-        result.Points[0] = {0, -3};
-        result.Points[1] = {0, -1};
-        result.Points[2] = {0, 1};
-        result.Points[3] = {0, 3};
+        result.Points[0] = {0, 3};
+        result.Points[1] = {0, 1};
+        result.Points[2] = {0, -1};
+        result.Points[3] = {0, -3};
         break;
     case NORMAL_L:
         result.Color = NORMAL_L_COLOR;
-        result.Points[0] = {-1, 2};
+        result.Points[0] = {-1, -2};
         result.Points[1] = {-1, 0};
-        result.Points[2] = {-1, -2};
-        result.Points[3] = {1, -2};
+        result.Points[2] = {-1, 2};
+        result.Points[3] = {1, 2};
         break;
     case BACKWARDS_L:
         result.Color = BACKWARD_L_COLOR;
-        result.Points[0] = {1, 2};
+        result.Points[0] = {1, -2};
         result.Points[1] = {1, 0};
-        result.Points[2] = {-1, -2};
-        result.Points[3] = {1, -2};
+        result.Points[2] = {-1, 2};
+        result.Points[3] = {1, 2};
         break;
     case NORMAL_T:
         result.Color = NORMAL_T_COLOR;
-        result.Points[0] = {0, 1};
-        result.Points[1] = {-2, -1};
-        result.Points[2] = {0, -1};
-        result.Points[3] = {2, -1};
+        result.Points[0] = {0, -1};
+        result.Points[1] = {-2, 1};
+        result.Points[2] = {0, 1};
+        result.Points[3] = {2, 1};
         break;
     case NORMAL_Z:
         result.Color = NORMAL_Z_COLOR;
-        result.Points[0] = {-2, 1};
-        result.Points[1] = {0, 1};
-        result.Points[2] = {0, -1};
-        result.Points[3] = {2, -1};
+        result.Points[0] = {-2, -1};
+        result.Points[1] = {0, -1};
+        result.Points[2] = {0, 1};
+        result.Points[3] = {2, 1};
         break;
     case BACKWARDS_Z:
         result.Color = BACKWARD_Z_COLOR;
-        result.Points[0] = {0, 1};
-        result.Points[1] = {2, 1};
-        result.Points[2] = {-2, -1};
-        result.Points[3] = {0, -1};
+        result.Points[0] = {0, -1};
+        result.Points[1] = {2, -1};
+        result.Points[2] = {-2, 1};
+        result.Points[3] = {0, 1};
         break;
     case SQUARE:
         result.Color = SQUARE_COLOR;
-        result.Points[0] = {1, 1};
-        result.Points[3] = {1, -1};
-        result.Points[1] = {-1, 1};
-        result.Points[2] = {-1, -1};
+        result.Points[0] = {1, -1};
+        result.Points[3] = {1, 1};
+        result.Points[1] = {-1, -1};
+        result.Points[2] = {-1, 1};
         break;
     }
     return result;
@@ -139,19 +139,20 @@ ShapePoint_t TransposePoint(ShapePoint_t point){
     int8_t temp = point.X;
     point.X = point.Y;
     point.Y = temp;
+    return point;
 }
 
 ShapePoint_t RotatePointClockwise(ShapePoint_t point){
 
-    point = TransposePoint(point);
     point.Y *= -1;
+    point = TransposePoint(point);
     return point;
 }
 
 ShapePoint_t RotatePointAntiClockwise(ShapePoint_t point){
 
-    point.Y *= -1;
     point = TransposePoint(point);
+    point.Y *= -1;
     return point;
 }
 
@@ -263,13 +264,13 @@ void loop()
         switch (GetDirection())
         {
         case LEFT:
-        if(playerOffset.X > 1){
+        if(playerOffset.X > 2){
             --playerOffset.X;
         }
             break;
     
         case RIGHT:
-        if(playerOffset.X < 8){
+        if(playerOffset.X < 9){
             ++playerOffset.X;
         }
             break;
