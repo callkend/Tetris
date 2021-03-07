@@ -274,7 +274,8 @@ uint8_t LineErase()
         for (int x = GameOffsetX; x < (GameOffsetX + GameSizeX); ++x)
         {
             playableSpace.X = x;
-            uint16_t pixel = GetPixel(playableSpace);
+            
+            uint32_t pixel = GetPixel(playableSpace);
 
             if (pixel != BACKGROUND_COLOR)
             {
@@ -283,8 +284,11 @@ uint8_t LineErase()
 
             if (linesCleared > 0)
             {
+                Location_t shiftAddress = playableSpace;
+                shiftAddress.Y = shiftAddress.Y + linesCleared;
+                uint8_t laddr = GetLinerAddress(shiftAddress);
                 // Shift pixel
-                matrix.drawPixel(playableSpace.X, playableSpace.Y + linesCleared, pixel);
+                matrix.setPixelColor(laddr, pixel);
             }
         }
 
@@ -297,8 +301,7 @@ uint8_t LineErase()
     return linesCleared;
 }
 
-uint16_t GetPixel(Location_t location)
-{
+uint8_t GetLinerAddress(Location_t location){
     uint8_t address = (location.Y << 4) + location.X;
 
     // Correct for the ZigZag in the LED Array
@@ -306,10 +309,16 @@ uint16_t GetPixel(Location_t location)
     {
         address ^= 0x0F;
     }
+    
+    return address;
+}
 
+uint32_t GetPixel(Location_t location)
+{
+    uint8_t address = GetLinerAddress(location);
     //matrix.setPixelColor(address, LINE_COLOR);
     // Maybe add code to make this uint32_t color the same as the uint16_t colors
-    return Color32to16(matrix.getPixelColor(address));
+    return matrix.getPixelColor(address);
 }
 
 bool ContainsFlag(int input, int flag)
@@ -337,7 +346,7 @@ bool PointCollides(Location_t* points, Location_t point){
         // Return false if the point collides with its self
         return false;
     } else {
-        return GetPixel(point) != BACKGROUND_COLOR
+        return GetPixel(point) != BACKGROUND_COLOR;
     }
 }
 
@@ -433,6 +442,7 @@ void loop()
     static Direction_e lastDirection;
     static Location_t lastOffset;
     static Shape_t lastShape;
+    static uint16_t downCount = 0;
 
     switch (GameState)
     {
@@ -485,7 +495,12 @@ void loop()
                 break;
 
             case DOWN:
-                    playerOffset.Y = 14;
+                while (!ContainsFlag(collision, COLLISION_ON_BOTTOM)) {
+                    ++playerOffset.Y;
+                    collision = DetectCollision(playerOffset, currentShape);
+                } 
+                downCount = 1000;
+                updateShape = true;
                 break;
 
             case UP:
@@ -533,8 +548,7 @@ void loop()
         }
 
         // Move down if it is time
-        static uint16_t downCount = 0;
-        if (++downCount > 500)
+        if (++downCount > 300)
         {
             downCount = 0;
 
