@@ -426,6 +426,40 @@ Collision_e DetectCollision(Location_t playerPostion, Shape_t shape)
     return (Collision_e)result;
 }
 
+/**
+ * @brief   Checks if the given shape would collide would override pixels
+ * @return  True if the shape will fit without conflict
+ */
+bool CheckFit(Location_t playerPostion, Shape_t shape)
+{
+    Location_t *points = PlotShape(playerPostion, shape);
+
+    for (uint8_t i = 0; i < POINTS_PER_SHAPE; ++i)
+    {
+
+        Location_t point = points[i];
+
+        if (point.X < GameOffsetX)
+        {
+            return false;
+        }
+        else if (point.X > (GameOffsetX + GameSizeX))
+        {
+            return false;
+        }
+        else if (point.Y > (GameOffsetY + GameSizeY))
+        {
+            return false;
+        }
+        else if (GetPixel(point) != BACKGROUND_COLOR)
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 uint8_t frame = 0;
 
 void setup()
@@ -505,44 +539,39 @@ void loop()
 
             case UP:
             {
-                Shape_t shapeStorage = currentShape;
+                // Clear the shape from the display to prevent collisions with self
+                ClearShape(playerOffset, currentShape);
+
+                // Save the current position incase the shape fails to rotate without
+                // collision
+                Shape_t fallbackShape = currentShape;
+                Location_t fallbackLocation = playerOffset;
                 RotateShape(&currentShape);
 
-                Collision_e rotateCollision = DetectCollision(playerOffset, currentShape);
-
-                if (rotateCollision == (COLLISION_ON_LEFT | COLLISION_ON_RIGHT))
+                while (!CheckFit(playerOffset, currentShape))
                 {
-                    // Invalid rotation
-                    currentShape = shapeStorage;
-                }
-                else if (ContainsFlag(rotateCollision, COLLISION_ON_RIGHT))
-                {
-                    --playerOffset.X;
-                }
-                else if (ContainsFlag(rotateCollision, COLLISION_ON_LEFT))
-                {
+                    collision = DetectCollision(playerOffset, currentShape);
 
-                    ++playerOffset.X;
-
-                    if (currentShape.Name == LINE)
+                    if (ContainsFlag(collision, COLLISION_ON_BOTTOM) ||
+                        collision == (COLLISION_ON_RIGHT || COLLISION_ON_LEFT))
                     {
-                        rotateCollision = DetectCollision(playerOffset, currentShape);
-
-                        if (rotateCollision == (COLLISION_ON_LEFT | COLLISION_ON_RIGHT))
-                        {
-                            // Invalid rotation
-                            currentShape = shapeStorage;
-                        }
-                        else if (ContainsFlag(rotateCollision, COLLISION_ON_LEFT))
-                        {
-                            ++playerOffset.X;
-                        }
+                        // This can't be fixed revert rotation
+                        currentShape = fallbackShape;
+                        playerOffset = fallbackLocation;
+                        break;
+                    }
+                    else if (ContainsFlag(collision, COLLISION_ON_LEFT))
+                    {
+                        ++playerOffset.X;
+                    }
+                    else if (ContainsFlag(collision, COLLISION_ON_RIGHT))
+                    {
+                        --playerOffset.X;
                     }
                 }
 
                 updateShape = true;
             }
-
             break;
             }
         }
