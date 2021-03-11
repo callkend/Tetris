@@ -4,7 +4,8 @@
 #define PORTABLE_ARCADE_H
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 #include <Adafruit_NeoMatrix.h>
@@ -27,20 +28,28 @@ extern "C" {
 #define SCORE_COUNT_PIN 3
 #define SCORE_100_PIN 4
 
-typedef enum
-{
-  NO_DIRECTION,
-  UP,
-  DOWN,
-  LEFT,
-  RIGHT,
-} Direction_e;
+  /** @brief An enum of all the direction the Joystick can point */
+  typedef enum
+  {
+    NO_DIRECTION,
+    UP,
+    DOWN,
+    LEFT,
+    RIGHT,
+  } Direction_e;
 
-void initPortableArcade(Adafruit_NeoMatrix* matix);
+  /** @brief Initializes the LED matrix an all the IO used by the 
+ * portable archade.
+ */
+  void initPortableArcade(Adafruit_NeoMatrix *matrix);
 
-Direction_e GetDirection(void);
+  /**
+ * @brief Checks what direction the joystick is actively pointing
+ * @returns A single direction, or no direction
+ */
+  Direction_e GetDirection(void);
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 }
 #endif
 

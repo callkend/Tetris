@@ -1,5 +1,5 @@
 /*
-Wyatt and Kendall
+Kendall and Wyatt
 Tetris
 */
 
@@ -7,12 +7,22 @@ Tetris
 #include <Adafruit_NeoMatrix.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SPITFT_Macros.h>
-#include <gfxfont.h>
-
-#include <gamma.h>
 
 #include "portableArcade.h"
 
+#define POINTS_PER_SHAPE 4
+
+#define PreviewOffsetX 13
+#define PreviewOffsetY 1
+#define PreviewSizeX 3
+#define PreviewSizeY 4
+
+#define GameOffsetX 1
+#define GameOffsetY 0
+#define GameSizeX 10
+#define GameSizeY 16
+
+/** @brief A enum to track the state of the game */
 enum GameState_e
 {
     PRE_GAME,
@@ -21,12 +31,13 @@ enum GameState_e
     END_GAME,
 } GameState;
 
-// Defines the Matrix.
+/** @brief The object used to change the LEDs */
 Adafruit_NeoMatrix matrix = Adafruit_NeoMatrix(16, 16, MATRIX_OUTPUT_PIN,
                                                NEO_MATRIX_TOP + NEO_MATRIX_RIGHT +
                                                    NEO_MATRIX_ROWS + NEO_MATRIX_ZIGZAG,
                                                NEO_GRB + NEO_KHZ800);
 
+#pragma region Color Definitions
 const uint16_t LINE_COLOR = matrix.Color(17, 157, 242);
 const uint16_t NORMAL_L_COLOR = matrix.Color(235, 74, 2);
 const uint16_t BACKWARD_L_COLOR = matrix.Color(17, 44, 233);
@@ -36,7 +47,9 @@ const uint16_t NORMAL_T_COLOR = matrix.Color(184, 24, 134);
 const uint16_t SQUARE_COLOR = matrix.Color(252, 189, 26);
 const uint16_t BACKGROUND_COLOR = matrix.Color(0, 0, 0);
 const uint16_t WALL_COLOR = matrix.Color(119, 119, 119);
+#pragma endregion
 
+/** @brief A flags enum used to indicate where a shape has collided */
 typedef enum
 {
     NO_COLLISION = 0,
@@ -45,6 +58,9 @@ typedef enum
     COLLISION_ON_BOTTOM = 4,
 } Collision_e;
 
+/** @brief An enum of the names of all the shapes 
+ *  @remark This isn't really needed but makes shapes easier to follow
+ */
 typedef enum
 {
     LINE,
@@ -57,12 +73,16 @@ typedef enum
     NO_SHAPE,
 } Shape_e;
 
+/** @brief  A point that can be negative or positive. Very useful when trying 
+ *          to center stuff.
+*/
 typedef struct
 {
     int8_t X;
     int8_t Y;
 } ShapePoint_t;
 
+/** @brief A positive interver location on the array. */
 typedef struct
 {
     byte X : 4;
@@ -70,7 +90,7 @@ typedef struct
 
 } Location_t;
 
-#define POINTS_PER_SHAPE 4
+/** @brief Stores all the data needed to draw a shape */
 typedef struct
 {
     Shape_e Name;
@@ -79,28 +99,9 @@ typedef struct
     ShapePoint_t Points[POINTS_PER_SHAPE];
 } Shape_t;
 
-typedef union{
-
-    struct{
-        uint8_t R;
-        uint8_t G;
-        uint8_t B;
-        uint8_t W;
-    };
-
-    struct {
-        uint32_t All;
-    };
-} Color_t;
- 
-uint16_t Color32to16(uint32_t input){
-
-    Color_t c ;
-    c.All = input;
-
-    return ((uint16_t)(c.R & 0xF8) << 8) | ((uint16_t)(c.G & 0xFC) << 3) | (c.B>> 3);
-}
-
+/** @brief Returns a random shape ready to manipulate 
+ *  @returns A randome shape
+ */
 Shape_t GetRandomShape(void)
 {
 
@@ -162,10 +163,9 @@ Shape_t GetRandomShape(void)
     return result;
 }
 
-Shape_t currentShape;
-Shape_t nextShape;
-Location_t playerOffset;
-
+/** @brief Swaps the X and Y value of a point
+ *  @returns A new point with X and Y swapped
+ */
 ShapePoint_t TransposePoint(ShapePoint_t point)
 {
     int8_t temp = point.X;
@@ -174,6 +174,10 @@ ShapePoint_t TransposePoint(ShapePoint_t point)
     return point;
 }
 
+/** @brief Takes a point an rotates it clockwise around 0,0 
+ *  @param point The point to rotate
+ *  @returns The rotated point
+ */
 ShapePoint_t RotatePointClockwise(ShapePoint_t point)
 {
 
@@ -182,6 +186,11 @@ ShapePoint_t RotatePointClockwise(ShapePoint_t point)
     return point;
 }
 
+/** @brief Takes a point an rotates it counter-clockwise around 0,0 
+ *  @param point The point to rotate
+ *  @remark This method isn't used in the current build
+ *  @returns The rotated point
+ */
 ShapePoint_t RotatePointAntiClockwise(ShapePoint_t point)
 {
 
@@ -190,9 +199,11 @@ ShapePoint_t RotatePointAntiClockwise(ShapePoint_t point)
     return point;
 }
 
+/** @brief Rotates all the points in a shape around 0,0
+ *  @param shape A pointer to a shape that will have all its points rotated
+ */
 void RotateShape(Shape_t *shape)
 {
-
     ShapePoint_t *point;
 
     for (int y = 0; y < POINTS_PER_SHAPE; ++y)
@@ -202,11 +213,9 @@ void RotateShape(Shape_t *shape)
     }
 }
 
-#define PreviewOffsetX 13
-#define PreviewOffsetY 1
-#define PreviewSizeX 3
-#define PreviewSizeY 4
-
+/** @brief Draws the given shape in the preview window
+ *  @param shape The shape to draw
+ */
 void DrawPreview(Shape_t shape)
 {
     matrix.fillRect(PreviewOffsetX, PreviewOffsetY,
@@ -218,6 +227,13 @@ void DrawPreview(Shape_t shape)
     DrawShape(previewCenter, shape);
 }
 
+/**
+ * @brief  Takes a given location and shape and returns the points
+ *         that this shape will occupy
+ * @param center The point the shape will be centered about
+ * @param shape  A collection of points that make up the shape
+ * @return The points to color to make the shape
+ */
 Location_t *PlotShape(Location_t center, Shape_t shape)
 {
 
@@ -236,6 +252,11 @@ Location_t *PlotShape(Location_t center, Shape_t shape)
     return result;
 }
 
+/** @brief Draws a collection of points on the matrix
+ * @param points A pointer to an array of points
+ * @param count The number of points in the array to draw
+ * @param color The color to set the specified points
+ */
 void DrawPoints(Location_t *points, int count, int color)
 {
 
@@ -246,21 +267,28 @@ void DrawPoints(Location_t *points, int count, int color)
     }
 }
 
+/** @brief Draws a given shape on the matrix
+ * @param center Where the shape should be centered about
+ * @param shape The shape to draw
+ */
 void DrawShape(Location_t center, Shape_t shape)
 {
     DrawPoints(PlotShape(center, shape), POINTS_PER_SHAPE, shape.Color);
 }
 
+/** @brief The same as DrawShape, but defaults to the BACKGROUND_COLOR
+ * @param center Where the shape should be centered about
+ * @param shape The shape to draw
+ */
 void ClearShape(Location_t center, Shape_t shape)
 {
     DrawPoints(PlotShape(center, shape), POINTS_PER_SHAPE, BACKGROUND_COLOR);
 }
 
-#define GameOffsetX 1
-#define GameOffsetY 0
-#define GameSizeX 10
-#define GameSizeY 16
-
+/** @brief Checks if any lines in the play area are filled, clears the full rows,
+ *         shifts the rows above down, and returns the number of rows cleared
+ * @returns The number of rows cleared
+ */
 uint8_t LineErase()
 {
     uint8_t linesCleared = 0;
@@ -274,7 +302,7 @@ uint8_t LineErase()
         for (int x = GameOffsetX; x < (GameOffsetX + GameSizeX); ++x)
         {
             playableSpace.X = x;
-            
+
             uint32_t pixel = GetPixel(playableSpace);
 
             if (pixel != BACKGROUND_COLOR)
@@ -301,7 +329,11 @@ uint8_t LineErase()
     return linesCleared;
 }
 
-uint8_t GetLinerAddress(Location_t location){
+/** @brief Takes a given X,Y cord and returns the liner address in the matrix
+ * @param location The X,Y cord to interpret
+ */
+uint8_t GetLinerAddress(Location_t location)
+{
     uint8_t address = (location.Y << 4) + location.X;
 
     // Correct for the ZigZag in the LED Array
@@ -309,10 +341,14 @@ uint8_t GetLinerAddress(Location_t location){
     {
         address ^= 0x0F;
     }
-    
+
     return address;
 }
 
+/** @brief gets the RAW color from a given location 
+ * @param location The location to get the RAW color from
+ * @returns The raw color from the given location
+ */
 uint32_t GetPixel(Location_t location)
 {
     uint8_t address = GetLinerAddress(location);
@@ -326,12 +362,19 @@ bool ContainsFlag(int input, int flag)
     return (input & flag) > 0;
 }
 
-// Returns true if points contains the given point
-bool ContainsPoint(Location_t* points, Location_t point){
-    for (int i = 0; i < POINTS_PER_SHAPE; ++i){
+/** @brief Checks if a given set of point contains a matching point
+ * @param points The collection to check
+ * @param point The point to look for
+ *  @returns true if points contains the given point
+ */
+bool ContainsPoint(Location_t *points, Location_t point)
+{
+    for (int i = 0; i < POINTS_PER_SHAPE; ++i)
+    {
         Location_t location = points[i];
 
-        if (location.X == point.X && location.Y == point.Y){
+        if (location.X == point.X && location.Y == point.Y)
+        {
             return true;
         }
     }
@@ -339,19 +382,32 @@ bool ContainsPoint(Location_t* points, Location_t point){
     return false;
 }
 
-// Returns true if the given point collies with any colored block
-bool PointCollides(Location_t* points, Location_t point){
+/** @brief Checks the matrix to see if anything is occupying the given
+ *         location, excluding points
+ * @param points Points in the matrix that don't need checked
+ * @param point The point to in question
+ * @returns True if the given point collided with any colored block
+ */
+bool PointCollides(Location_t *points, Location_t point)
+{
 
-    if (ContainsPoint(points, point)){
+    if (ContainsPoint(points, point))
+    {
         // Return false if the point collides with its self
         return false;
-    } else {
+    }
+    else
+    {
         return GetPixel(point) != BACKGROUND_COLOR;
     }
 }
 
-// Returns the types of collistions the given shape will encounter 
-// at a given location
+/** @brief Checks if a given shape is touching anything in the play area
+ * @param playerPostion Where the shape is in the matrix
+ * @param shape The shape in question
+ * @returns The types of collistions the given shape will encounter
+ *          at a given location
+*/
 Collision_e DetectCollision(Location_t playerPostion, Shape_t shape)
 {
     Location_t *points = PlotShape(playerPostion, shape);
@@ -428,6 +484,8 @@ Collision_e DetectCollision(Location_t playerPostion, Shape_t shape)
 
 /**
  * @brief   Checks if the given shape would collide would override pixels
+ * @param playerPostion Where the shape is located in the play area
+ * @param shape The shape in question
  * @return  True if the shape will fit without conflict
  */
 bool CheckFit(Location_t playerPostion, Shape_t shape)
@@ -460,8 +518,6 @@ bool CheckFit(Location_t playerPostion, Shape_t shape)
     return true;
 }
 
-uint8_t frame = 0;
-
 void setup()
 {
     Serial.begin(9600);
@@ -473,10 +529,16 @@ void setup()
 
 void loop()
 {
+    static Shape_t currentShape;
+    static Shape_t nextShape;
+    static Location_t playerOffset;
+
     static Direction_e lastDirection;
     static Location_t lastOffset;
     static Shape_t lastShape;
     static uint16_t downCount = 0;
+
+    static uint8_t frame = 0;
 
     switch (GameState)
     {
@@ -529,10 +591,11 @@ void loop()
                 break;
 
             case DOWN:
-                while (!ContainsFlag(collision, COLLISION_ON_BOTTOM)) {
+                while (!ContainsFlag(collision, COLLISION_ON_BOTTOM))
+                {
                     ++playerOffset.Y;
                     collision = DetectCollision(playerOffset, currentShape);
-                } 
+                }
                 downCount = 1000;
                 updateShape = true;
                 break;
