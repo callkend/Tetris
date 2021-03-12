@@ -22,6 +22,10 @@ Tetris
 #define GameSizeX 10
 #define GameSizeY 16
 
+#define PlayerStartingX (GameOffsetX + 4)
+#define PlayerStartingY 0
+#define StartingDownBeat 300
+
 /** @brief A enum to track the state of the game */
 enum GameState_e
 {
@@ -47,6 +51,12 @@ const uint16_t NORMAL_T_COLOR = matrix.Color(184, 24, 134);
 const uint16_t SQUARE_COLOR = matrix.Color(252, 189, 26);
 const uint16_t BACKGROUND_COLOR = matrix.Color(0, 0, 0);
 const uint16_t WALL_COLOR = matrix.Color(119, 119, 119);
+
+const uint16_t GAMEOVER_COLORS[] = {
+    matrix.Color(255, 0, 0),
+    matrix.Color(0, 255, 0),
+    matrix.Color(0, 0, 255),
+};
 #pragma endregion
 
 /** @brief A flags enum used to indicate where a shape has collided */
@@ -85,8 +95,8 @@ typedef struct
 /** @brief A positive interver location on the array. */
 typedef struct
 {
-    byte X : 4;
-    byte Y : 4;
+    int8_t X : 5;
+    int8_t Y : 5;
 
 } Location_t;
 
@@ -245,8 +255,8 @@ Location_t *PlotShape(Location_t center, Shape_t shape)
         location.X = location.X >> 1;
         location.Y = location.Y >> 1;
 
-        result[y] = {(uint8_t)(location.X + (int8_t)center.X),
-                     (uint8_t)(location.Y + (int8_t)center.Y)};
+        result[y] = {(int8_t)(location.X + (int8_t)center.X),
+                     (int8_t)(location.Y + (int8_t)center.Y)};
     }
 
     return result;
@@ -357,6 +367,11 @@ uint32_t GetPixel(Location_t location)
     return matrix.getPixelColor(address);
 }
 
+/** @brief Checks if a given flags enum contains a flag
+ * @param input The flags enum to check
+ * @param flag The flag to check in the enum
+ * @returns True if the input contains the flag
+ */
 bool ContainsFlag(int input, int flag)
 {
     return (input & flag) > 0;
@@ -522,7 +537,7 @@ void setup()
 {
     Serial.begin(9600);
     randomSeed(analogRead(0));
-    GameState = START_GAME;
+    GameState = PRE_GAME;
     //Initializes the LED matrix, clears it, and setups the IO
     initPortableArcade(&matrix);
 }
@@ -536,19 +551,57 @@ void loop()
     static Direction_e lastDirection;
     static Location_t lastOffset;
     static Shape_t lastShape;
+
+    // Tracks what frame of the game we are on
     static uint16_t downCount = 0;
+    // Tracks how often to force a shape down one
+    static uint16_t downBeat;
 
     static uint8_t frame = 0;
+
+    static uint16_t score;
+
+    static uint16_t linesCleared;
 
     switch (GameState)
     {
     case PRE_GAME:
-        /* code */
-        break;
+    {
+        static int8_t textIndex = 0;
+
+        matrix.fillScreen(BACKGROUND_COLOR);
+        matrix.setCursor(textIndex, 0);
+
+        // Displays how to select the hard diffculty.
+        matrix.setTextColor(matrix.Color(255, 93, 21));
+        matrix.print("Tetris");
+        matrix.setCursor(textIndex, 8);
+
+        if (--textIndex < -34)
+        {
+            textIndex = matrix.width();
+        }
+
+        matrix.show();
+
+        if (GetDirection() != NO_DIRECTION)
+        {
+            // Wait for the user to put the joystick back in the center
+            while (GetDirection() != NO_DIRECTION)
+                ;
+
+            GameState = START_GAME;
+        }
+
+        delay(50);
+    }
+
+    break;
     default:
     case START_GAME:
-        playerOffset.X = 5;
-        playerOffset.Y = 2;
+        playerOffset.X = PlayerStartingX;
+        playerOffset.Y = PlayerStartingY;
+
         matrix.fill(BACKGROUND_COLOR);
         nextShape = GetRandomShape();
         DrawPreview(nextShape);
@@ -557,9 +610,18 @@ void loop()
         matrix.fillRect(11, 6, 15, 15, WALL_COLOR);
         currentShape = GetRandomShape();
         matrix.show();
+
         GameState = RUNNING_GAME;
         lastShape.Name = NO_SHAPE;
+
+        score = 0;
+        linesCleared = 0;
+
+        downBeat = StartingDownBeat;
+
+        ResetScoreAndBonus();
         break;
+
     case RUNNING_GAME:
     {
         // Move the shape left and right
@@ -596,7 +658,7 @@ void loop()
                     ++playerOffset.Y;
                     collision = DetectCollision(playerOffset, currentShape);
                 }
-                downCount = 1000;
+                downCount = downBeat - 1;
                 updateShape = true;
                 break;
 
@@ -640,19 +702,53 @@ void loop()
         }
 
         // Move down if it is time
-        if (++downCount > 300)
+        if (++downCount > downBeat)
         {
             downCount = 0;
 
             if (ContainsFlag(collision, COLLISION_ON_BOTTOM))
             {
-                playerOffset.Y = 2;
-                playerOffset.X = 5;
-                currentShape = nextShape;
-                nextShape = GetRandomShape();
-                DrawPreview(nextShape);
-                LineErase();
-                lastShape.Name = NO_SHAPE;
+                // Check for a game over
+                Location_t *shape = PlotShape(playerOffset, currentShape);
+
+                for (int i = 0; i < POINTS_PER_SHAPE; ++i)
+                {
+                    Location_t point = shape[i];
+
+                    if (point.Y < 0)
+                    {
+                        GameState = END_GAME;
+                    }
+                }
+
+                // If the game isn't over, prep a new shape
+                if (GameState == RUNNING_GAME)
+                {
+                    playerOffset.Y = PlayerStartingY;
+                    playerOffset.X = PlayerStartingX;
+
+                    currentShape = nextShape;
+                    nextShape = GetRandomShape();
+                    DrawPreview(nextShape);
+                    lastShape.Name = NO_SHAPE;
+
+                    uint8_t lc = LineErase();
+
+                    const uint8_t scores[] = {0, 1, 2, 4, 8};
+                    score += scores[lc];
+                    SetScore(score);
+
+                    linesCleared += lc;
+                    SetBonus(linesCleared);
+                    
+                    // Increase the game speed every ten rows cleared
+                    downBeat = StartingDownBeat - ((linesCleared / 10) * 20);
+
+                    if (downBeat < 50)
+                    {
+                        downBeat = 50;
+                    }
+                }
             }
             else
             {
@@ -680,7 +776,41 @@ void loop()
     }
     break;
     case END_GAME:
+    {
+        static int8_t textIndex = 0;
+        static int8_t pass = 0;
 
-        break;
+        matrix.fillScreen(BACKGROUND_COLOR);
+        matrix.setCursor(textIndex, 0);
+        matrix.print(F("Gameover"));
+
+        if (--textIndex < -46)
+        {
+            textIndex = matrix.width();
+            if (++pass >= 3)
+            {
+                pass = 0;
+                GameState = PRE_GAME;
+            }
+
+            matrix.setTextColor(GAMEOVER_COLORS[pass]);
+        }
+
+        matrix.setCursor(0, 8);
+        matrix.print(score);
+        matrix.show();
+
+        if (GetDirection() != NO_DIRECTION && pass > 0)
+        {
+            // Wait for the user to put the joystick back in the center
+            while (GetDirection() != NO_DIRECTION)
+                ;
+
+            GameState = PRE_GAME;
+        }
+
+        delay(50);
+    }
+    break;
     }
 }

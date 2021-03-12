@@ -57,11 +57,11 @@ extern "C"
    */
   void SetScore(uint16_t score);
 
-  /** @brief Sets teh bonus value on the attached score board
+  /** @brief Sets the bonus value on the attached score board
    * @param bonus The value to show
    */
   void SetBonus(uint8_t bonus);
-  
+
 #ifdef __cplusplus
 }
 #endif
