@@ -49,6 +49,19 @@ extern "C"
  */
   Direction_e GetDirection(void);
 
+  /** @brief Resets the score on the attached score board */
+  void ResetScoreAndBonus(void);
+
+  /** @brief Sets the score on the attached score board
+   * @param score The value to show
+   */
+  void SetScore(uint16_t score);
+
+  /** @brief Sets teh bonus value on the attached score board
+   * @param bonus The value to show
+   */
+  void SetBonus(uint8_t bonus);
+  
 #ifdef __cplusplus
 }
 #endif
