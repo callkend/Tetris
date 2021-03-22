@@ -65,9 +65,9 @@ static uint16_t activeScore;
 static uint8_t activeBonus;
 void ResetScoreAndBonus(void)
 {
-  digitalWrite(SCORE_BOARD_RESET_PIN, LOW);
+  digitalWrite(SCORE_BOARD_RESET_PIN, HIGH);
   activeBonus = activeScore = 0;
-  digitalWrite(SCORE_100_PIN, HIGH);
+  digitalWrite(SCORE_100_PIN, LOW);
   __asm__("nop\n\t"); // May not be needed
   digitalWrite(SCORE_BOARD_RESET_PIN, LOW);
 }

@@ -592,7 +592,7 @@ void loop()
 
             GameState = START_GAME;
         }
-
+        
         delay(50);
     }
 
@@ -734,7 +734,7 @@ void loop()
 
                     uint8_t lc = LineErase();
 
-                    const uint8_t scores[] = {0, 1, 2, 4, 8};
+                    const uint8_t scores[] = {0, 1, 4, 9, 16};
                     score += scores[lc];
                     SetScore(score);
 
