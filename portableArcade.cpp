@@ -67,9 +67,9 @@ void ResetScoreAndBonus(void)
 {
   digitalWrite(SCORE_BOARD_RESET_PIN, LOW);
   activeBonus = activeScore = 0;
-  digitalWrite(SCORE_100_PIN, LOW);
+  digitalWrite(SCORE_100_PIN, HIGH);
   __asm__("nop\n\t"); // May not be needed
-  digitalWrite(SCORE_BOARD_RESET_PIN, HIGH);
+  digitalWrite(SCORE_BOARD_RESET_PIN, LOW);
 }
 
 void SetScore(uint16_t score)

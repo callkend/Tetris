@@ -535,7 +535,7 @@ bool CheckFit(Location_t playerPostion, Shape_t shape)
 
 void setup()
 {
-    Serial.begin(9600);
+    //Serial.begin(9600);
     randomSeed(analogRead(0));
     GameState = PRE_GAME;
     //Initializes the LED matrix, clears it, and setups the IO
