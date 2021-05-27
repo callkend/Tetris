@@ -99,7 +99,7 @@ void SetScore(uint16_t score)
 
 void SetBonus(uint8_t bonus)
 {
-  int8_t i = bonus < activeBonus ? 1 : -1;
+  int8_t i = bonus > activeBonus ? 1 : -1;
   digitalWrite(GOBBLE_UPDOWN_SELECT_PIN, bonus > activeBonus);
 
   while (bonus != activeBonus)
