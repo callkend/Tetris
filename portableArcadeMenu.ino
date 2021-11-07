@@ -8,8 +8,8 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_SPITFT_Macros.h>
 
-#include "Tetris.h"
 #include "Snake.h"
+#include "Tetris.h"
 #include "portableArcade.h"
 
 /** @brief A enum to track which menu is being used*/
@@ -138,6 +138,12 @@ void loop(){
     }
 
         matrix.show();
+
+        if (GetDirection() != NO_DIRECTION)
+        {
+                // Wait for the user to put the joystick back in the center
+            while (GetDirection() != NO_DIRECTION);
+        }
         
         delay(50);
 }
