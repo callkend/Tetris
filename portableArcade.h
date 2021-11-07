@@ -8,9 +8,10 @@ extern "C"
 {
 #endif
 
+#include <Adafruit_NeoPixel.h>
 #include <Adafruit_NeoMatrix.h>
 #include <Adafruit_GFX.h>
-#include <Adafruit_NeoPixel.h>
+#include <Adafruit_SPITFT_Macros.h>
 
 // Defines the pin in which the data is sent to the matrix.
 #define MATRIX_OUTPUT_PIN 6
@@ -37,6 +38,14 @@ extern "C"
     LEFT,
     RIGHT,
   } Direction_e;
+
+
+/** @brief The object used to change the LEDs */
+Adafruit_NeoMatrix matrix = Adafruit_NeoMatrix(16, 16, MATRIX_OUTPUT_PIN,
+                                               NEO_MATRIX_TOP + NEO_MATRIX_RIGHT +
+                                               NEO_MATRIX_ROWS + NEO_MATRIX_ZIGZAG,
+                                               NEO_GRB + NEO_KHZ800);
+
 
   /** @brief Initializes the LED matrix an all the IO used by the 
  * portable archade.

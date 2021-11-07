@@ -9,6 +9,7 @@ Tetris
 #include <Adafruit_SPITFT_Macros.h>
 
 #include "portableArcade.h"
+#include "games.h"
 
 #define POINTS_PER_SHAPE 4
 
@@ -26,20 +27,8 @@ Tetris
 #define PlayerStartingY 0
 #define StartingDownBeat 300
 
-/** @brief A enum to track the state of the game */
-enum GameState_e
-{
-    PRE_GAME,
-    START_GAME,
-    RUNNING_GAME,
-    END_GAME,
-} GameState;
-
-/** @brief The object used to change the LEDs */
-Adafruit_NeoMatrix matrix = Adafruit_NeoMatrix(16, 16, MATRIX_OUTPUT_PIN,
-                                               NEO_MATRIX_TOP + NEO_MATRIX_RIGHT +
-                                                   NEO_MATRIX_ROWS + NEO_MATRIX_ZIGZAG,
-                                               NEO_GRB + NEO_KHZ800);
+// extern Adafruit_NeoMatrix matrix;
+GameState_e GameState = PRE_GAME;
 
 #pragma region Color Definitions
 const uint16_t LINE_COLOR = matrix.Color(17, 157, 242);
@@ -223,20 +212,6 @@ void RotateShape(Shape_t *shape)
     }
 }
 
-/** @brief Draws the given shape in the preview window
- *  @param shape The shape to draw
- */
-void DrawPreview(Shape_t shape)
-{
-    matrix.fillRect(PreviewOffsetX, PreviewOffsetY,
-                    PreviewSizeX, PreviewSizeY, BACKGROUND_COLOR);
-
-    const Location_t previewCenter = {PreviewOffsetX + 1,
-                                      PreviewOffsetY + 2};
-
-    DrawShape(previewCenter, shape);
-}
-
 /**
  * @brief  Takes a given location and shape and returns the points
  *         that this shape will occupy
@@ -286,6 +261,20 @@ void DrawShape(Location_t center, Shape_t shape)
     DrawPoints(PlotShape(center, shape), POINTS_PER_SHAPE, shape.Color);
 }
 
+/** @brief Draws the given shape in the preview window
+ *  @param shape The shape to draw
+ */
+void DrawPreview(Shape_t shape)
+{
+    matrix.fillRect(PreviewOffsetX, PreviewOffsetY,
+                    PreviewSizeX, PreviewSizeY, BACKGROUND_COLOR);
+
+    const Location_t previewCenter = {PreviewOffsetX + 1,
+                                      PreviewOffsetY + 2};
+
+    DrawShape(previewCenter, shape);
+}
+
 /** @brief The same as DrawShape, but defaults to the BACKGROUND_COLOR
  * @param center Where the shape should be centered about
  * @param shape The shape to draw
@@ -293,6 +282,34 @@ void DrawShape(Location_t center, Shape_t shape)
 void ClearShape(Location_t center, Shape_t shape)
 {
     DrawPoints(PlotShape(center, shape), POINTS_PER_SHAPE, BACKGROUND_COLOR);
+}
+
+/** @brief Takes a given X,Y cord and returns the liner address in the matrix
+ * @param location The X,Y cord to interpret
+ */
+uint8_t GetLinerAddress(Location_t location)
+{
+    uint8_t address = (location.Y << 4) + location.X;
+
+    // Correct for the ZigZag in the LED Array
+    if (!bitRead(address, 4))
+    {
+        address ^= 0x0F;
+    }
+
+    return address;
+}
+
+/** @brief gets the RAW color from a given location 
+ * @param location The location to get the RAW color from
+ * @returns The raw color from the given location
+ */
+uint32_t GetPixel(Location_t location)
+{
+    uint8_t address = GetLinerAddress(location);
+    //matrix.setPixelColor(address, LINE_COLOR);
+    // Maybe add code to make this uint32_t color the same as the uint16_t colors
+    return matrix.getPixelColor(address);
 }
 
 /** @brief Checks if any lines in the play area are filled, clears the full rows,
@@ -337,34 +354,6 @@ uint8_t LineErase()
     }
 
     return linesCleared;
-}
-
-/** @brief Takes a given X,Y cord and returns the liner address in the matrix
- * @param location The X,Y cord to interpret
- */
-uint8_t GetLinerAddress(Location_t location)
-{
-    uint8_t address = (location.Y << 4) + location.X;
-
-    // Correct for the ZigZag in the LED Array
-    if (!bitRead(address, 4))
-    {
-        address ^= 0x0F;
-    }
-
-    return address;
-}
-
-/** @brief gets the RAW color from a given location 
- * @param location The location to get the RAW color from
- * @returns The raw color from the given location
- */
-uint32_t GetPixel(Location_t location)
-{
-    uint8_t address = GetLinerAddress(location);
-    //matrix.setPixelColor(address, LINE_COLOR);
-    // Maybe add code to make this uint32_t color the same as the uint16_t colors
-    return matrix.getPixelColor(address);
 }
 
 /** @brief Checks if a given flags enum contains a flag
@@ -533,7 +522,7 @@ bool CheckFit(Location_t playerPostion, Shape_t shape)
     return true;
 }
 
-void setup()
+void tetrisSetup(void)
 {
     //Serial.begin(9600);
     randomSeed(analogRead(0));
@@ -542,7 +531,7 @@ void setup()
     initPortableArcade(&matrix);
 }
 
-void loop()
+bool tetrisLoop()
 {
     static Shape_t currentShape;
     static Shape_t nextShape;
@@ -803,14 +792,16 @@ void loop()
         if (GetDirection() != NO_DIRECTION && pass > 0)
         {
             // Wait for the user to put the joystick back in the center
-            while (GetDirection() != NO_DIRECTION)
-                ;
+            while (GetDirection() != NO_DIRECTION);
 
             GameState = PRE_GAME;
+            return false;
         }
 
         delay(50);
     }
     break;
     }
+
+    return true;
 }
