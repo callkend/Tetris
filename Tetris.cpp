@@ -27,7 +27,7 @@ Tetris
 #define PlayerStartingY 0
 #define StartingDownBeat 300
 
-// extern Adafruit_NeoMatrix matrix;
+extern Adafruit_NeoMatrix matrix;
 GameState_e GameState = PRE_GAME;
 
 #pragma region Color Definitions

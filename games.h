@@ -8,13 +8,13 @@
 #endif
 
     /** @brief A enum to track the state of the game */
-    enum GameState_e
+    typedef enum
     {
         PRE_GAME,
         START_GAME,
         RUNNING_GAME,
         END_GAME,
-    } GameState_e
+    } GameState_e;
 
 #ifdef	__cplusplus
 // }

@@ -57,7 +57,7 @@ typedef struct
   SnakeLocation_t Head;
 } Snake_t;
 
-// extern Adafruit_NeoMatrix matrix;
+extern Adafruit_NeoMatrix matrix;
 
 // COOOOLOURS!!!
 //Sets Snake Color

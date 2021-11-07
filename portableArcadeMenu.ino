@@ -21,7 +21,10 @@ enum MenuSelect_e
 } MenuSelect;
 
 /** @brief The object used to change the LEDs */
-extern Adafruit_NeoMatrix matrix;
+Adafruit_NeoMatrix matrix = Adafruit_NeoMatrix(16, 16, MATRIX_OUTPUT_PIN,
+                                               NEO_MATRIX_TOP + NEO_MATRIX_RIGHT +
+                                               NEO_MATRIX_ROWS + NEO_MATRIX_ZIGZAG,
+                                               NEO_GRB + NEO_KHZ800);
 
 void setup(){
     initPortableArcade(&matrix);
@@ -37,7 +40,7 @@ MAIN MENU  ->   Snake   ->  Easy    -> Start Snake Easy
 
 void loop(){
     static int8_t textIndex = 0;
-    uint8_t selectedMenuItem = 0;
+    static uint8_t selectedMenuItem = 0;
 
     switch (MenuSelect)
     {
@@ -68,6 +71,12 @@ void loop(){
             }
             break;
         }
+
+        if (GetDirection() == UP)
+            selectedMenuItem = 0;
+
+        if (GetDirection() == DOWN)
+            selectedMenuItem = 1;
     if (--textIndex < -34)
     {
         textIndex = matrix.width();
@@ -129,21 +138,6 @@ void loop(){
     }
 
         matrix.show();
-
-    if (GetDirection() == UP)
-        selectedMenuItem = 0;
-
-    if (GetDirection() == DOWN)
-        selectedMenuItem = 1;
-    
-
-    if (GetDirection() != NO_DIRECTION)
-    {
-            // Wait for the user to put the joystick back in the center
-        while (GetDirection() != NO_DIRECTION);
-
-            GameState = START_GAME;
-    }
         
         delay(50);
 }
