@@ -8,6 +8,7 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_SPITFT_Macros.h>
 
+#include "Brick_Break.h"
 #include "Snake.h"
 #include "Tetris.h"
 #include "portableArcade.h"
@@ -18,6 +19,7 @@ enum MenuSelect_e
     GAME_SELECT,
     TETRIS_MENU,
     SNAKE_MENU,
+    BREAK_MENU,
 } MenuSelect;
 
 /** @brief The object used to change the LEDs */
@@ -70,13 +72,23 @@ void loop(){
                 MenuSelect = SNAKE_MENU;
             }
             break;
+
+        case 2:
+            matrix.setTextColor(matrix.Color(93, 255, 21));
+            matrix.print("Snake");
+            matrix.setCursor(textIndex, 8);
+            matrix.setTextColor(matrix.Color(255, 93, 21));
+            matrix.print("Brick");
+            if (GetDirection() == RIGHT){
+                MenuSelect = BREAK_MENU;
+            }
         }
 
         if (GetDirection() == UP)
-            selectedMenuItem = 0;
+            if (selectedMenuItem != 0) --selectedMenuItem;
 
         if (GetDirection() == DOWN)
-            selectedMenuItem = 1;
+            if (selectedMenuItem != 2) ++selectedMenuItem;
     if (--textIndex < -34)
     {
         textIndex = matrix.width();
@@ -124,6 +136,33 @@ void loop(){
             snakeSetup();
 
             while (snakeLoop());
+        }
+        if (GetDirection()== LEFT){
+            MenuSelect = GAME_SELECT;
+        }
+        
+
+        if (--textIndex < -34)
+        {
+            textIndex = matrix.width();
+        }
+        break;
+        
+        case BREAK_MENU:
+        matrix.fillScreen(BACKGROUND_COLOR);
+        matrix.setCursor(textIndex, 0);
+
+        matrix.setTextColor(matrix.Color(255, 93, 21));
+        matrix.print("Start");
+        matrix.setCursor(textIndex, 8);
+        matrix.setTextColor(matrix.Color(255, 93, 21));
+        matrix.print("Brick Break");
+
+        if (GetDirection() == RIGHT){
+
+            brickBreakSetup();
+
+            while (brickBreakLoop());
         }
         if (GetDirection()== LEFT){
             MenuSelect = GAME_SELECT;
